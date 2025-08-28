@@ -340,8 +340,6 @@ async recordGiftActivity(activityData) {
           category: 'Social'
         });
       }
-    } catch (error) {
-      console.warn('Could not sync activity with user profile:', error);
 } catch (error) {
       console.warn('Could not sync activity with user profile:', error);
     }
