@@ -20,7 +20,8 @@ const navigation = [
     { name: "Social", href: "/social", icon: "Share2" },
     { name: "Virtual Wrapping", href: "/virtual-wrapping", icon: "Gift" },
     { name: "Trends", href: "/trends", icon: "TrendingUp" },
-    { name: "Stores", href: "/stores", icon: "Store" }
+    { name: "Stores", href: "/stores", icon: "Store" },
+    { name: "Profile", href: "/profile", icon: "UserCircle" }
   ];
 
   const closeMobileMenu = () => {

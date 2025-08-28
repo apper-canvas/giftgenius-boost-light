@@ -10,17 +10,19 @@ import Loading from "@/components/ui/Loading";
 import Error from "@/components/ui/Error";
 import { recipientService } from "@/services/api/recipientService";
 import { reminderService } from "@/services/api/reminderService";
+import { userService } from "@/services/api/userService";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { toast } from "react-toastify";
-
 const Home = () => {
-  const [recipients, setRecipients] = React.useState([]);
+const [recipients, setRecipients] = React.useState([]);
   const [reminders, setReminders] = React.useState([]);
+  const [user, setUser] = React.useState(null);
+  const [recommendations, setRecommendations] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
   const navigate = useNavigate();
 
-  React.useEffect(() => {
+React.useEffect(() => {
     loadDashboardData();
   }, []);
 
@@ -29,13 +31,17 @@ const Home = () => {
       setLoading(true);
       setError("");
       
-      const [recipientsData, remindersData] = await Promise.all([
+      const [recipientsData, remindersData, userData, recommendationsData] = await Promise.all([
         recipientService.getAll(),
-        reminderService.getUpcoming()
+        reminderService.getUpcoming(),
+        userService.getProfile(),
+        userService.getPersonalizedRecommendations()
       ]);
       
       setRecipients(recipientsData.slice(0, 6)); // Show latest 6 recipients
       setReminders(remindersData.slice(0, 4)); // Show upcoming 4 reminders
+      setUser(userData);
+      setRecommendations(recommendationsData);
     } catch (err) {
       setError("Failed to load dashboard data. Please try again.");
     } finally {
@@ -91,24 +97,45 @@ const handleQuickGift = () => {
         transition={{ delay: 0.1 }}
       >
         {/* AI Recommendations Section */}
-        <Card className="md:col-span-full mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+<Card className="md:col-span-full mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold flex items-center space-x-2 mb-2">
                 <ApperIcon name="Brain" size={20} className="text-indigo-600" />
-                <span>Recommended for You</span>
+                <span>Personalized for {user?.name?.split(' ')[0] || 'You'}</span>
                 <Badge variant="success" size="sm" className="ml-2">AI Powered</Badge>
               </h3>
-              <p className="text-gray-600 text-sm">Personalized suggestions based on your preferences and browsing history</p>
+              <p className="text-gray-600 text-sm">
+                Based on your favorite categories: {recommendations?.categories?.join(', ') || 'Electronics, Books, Art & Crafts'}
+              </p>
+              {recommendations?.suggestedGifts && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {recommendations.suggestedGifts.slice(0, 3).map((gift) => (
+                    <div key={gift.Id} className="bg-white px-3 py-1 rounded-full border border-indigo-200 text-sm">
+                      ${gift.price} {gift.title}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <Button 
-              onClick={() => navigate('/recipients')}
-              variant="primary" 
-              size="sm"
-            >
-              <ApperIcon name="ArrowRight" size={16} />
-              Explore More
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={() => navigate('/profile')}
+                variant="outline" 
+                size="sm"
+              >
+                <ApperIcon name="Settings" size={16} />
+                Preferences
+              </Button>
+              <Button 
+                onClick={() => navigate('/recipients')}
+                variant="primary" 
+                size="sm"
+              >
+                <ApperIcon name="ArrowRight" size={16} />
+                Explore More
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -149,17 +176,23 @@ const handleQuickGift = () => {
             </div>
           </Card>
 
-          <Card className="text-center bg-gradient-to-br from-accent-50 to-orange-50 border-accent-200" hoverable>
+<Card className="text-center bg-gradient-to-br from-accent-50 to-orange-50 border-accent-200" hoverable>
             <div className="space-y-4">
               <div className="w-16 h-16 bg-gradient-to-br from-accent-500 to-orange-500 rounded-full flex items-center justify-center mx-auto">
                 <ApperIcon name="Sparkles" className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Smart Recommendations</h3>
-                <p className="text-gray-600 text-sm">AI-powered suggestions based on your history</p>
+                <h3 className="text-lg font-semibold text-gray-900">Your Account</h3>
+                <p className="text-gray-600 text-sm">Manage preferences, orders, and social connections</p>
+                {user && (
+                  <div className="mt-2">
+                    <Badge variant="outline" size="sm">{user.totalRecipients} Recipients</Badge>
+                    <Badge variant="outline" size="sm" className="ml-1">{user.totalOrders} Orders</Badge>
+                  </div>
+                )}
 </div>
-              <Button variant="accent" size="sm" onClick={() => navigate("/stores")}>
-                Browse Stores
+              <Button variant="accent" size="sm" onClick={() => navigate("/profile")}>
+                View Profile
               </Button>
             </div>
           </Card>

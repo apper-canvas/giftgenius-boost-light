@@ -13,6 +13,7 @@ import DIYInstructions from "@/components/pages/DIYInstructions";
 import Trends from "@/components/pages/Trends";
 import VirtualWrapping from "@/components/pages/VirtualWrapping";
 import EcommerceStores from "@/components/pages/EcommerceStores";
+import Profile from "@/components/pages/Profile";
 
 function App() {
   return (
@@ -31,6 +32,7 @@ function App() {
             <Route path="diy-instructions/:id" element={<DIYInstructions />} />
             <Route path="trends" element={<Trends />} />
             <Route path="stores" element={<EcommerceStores />} />
+            <Route path="profile" element={<Profile />} />
           </Route>
         </Routes>
         

@@ -1,12 +1,15 @@
-import friendsData from '@/services/mockData/friends.json';
-import sharedWishlistsData from '@/services/mockData/sharedWishlists.json';
-import socialGiftsData from '@/services/mockData/socialGifts.json';
+import friendsData from "@/services/mockData/friends.json";
+import sharedWishlistsData from "@/services/mockData/sharedWishlists.json";
+import socialGiftsData from "@/services/mockData/socialGifts.json";
+import React from "react";
+import Error from "@/components/ui/Error";
 
 class SocialGiftService {
   constructor() {
     this.friends = [...friendsData];
     this.sharedWishlists = [...sharedWishlistsData];
     this.giftActivities = [...socialGiftsData];
+    this.userActivitySyncEnabled = true;
   }
 
   async delay(ms = 500) {
@@ -18,7 +21,7 @@ class SocialGiftService {
   }
 
   // Friends Management
-  async getFriends() {
+async getFriends() {
     await this.delay();
     return [...this.friends];
   }
@@ -38,6 +41,10 @@ class SocialGiftService {
     };
 
     this.friends.push(newFriend);
+    
+    // Update user's friend count
+    this.updateUserSocialStats('friendAdded');
+    
     return { ...newFriend };
   }
 
@@ -53,7 +60,7 @@ class SocialGiftService {
     return { ...deleted };
   }
 
-  // Shared Wishlists
+// Shared Wishlists
   async getSharedWishlists() {
     await this.delay();
     return [...this.sharedWishlists];
@@ -80,6 +87,10 @@ class SocialGiftService {
     };
 
     this.sharedWishlists.push(newWishlist);
+    
+    // Update user's wishlist count
+    this.updateUserSocialStats('wishlistCreated');
+    
     return { ...newWishlist };
   }
 
@@ -115,10 +126,13 @@ async addItemToWishlist(wishlistId, item) {
     // Send wishlist update notification
     await this.sendWishlistUpdateNotification(wishlist, 'item_added', newItem);
     
+    // Track user activity for personalization
+    this.trackUserWishlistActivity('item_added', newItem);
+    
     return newItem;
   }
 
-  async sendWishlistUpdateNotification(wishlist, action, item = null) {
+async sendWishlistUpdateNotification(wishlist, action, item = null) {
     await this.delay(100);
     
     try {
@@ -133,12 +147,15 @@ async addItemToWishlist(wishlistId, item) {
       };
       
       await alertNotificationService.processNotification(notification);
+      
+      // Also sync with user preferences if enabled
+      this.syncWishlistWithUserProfile(wishlist, action, item);
     } catch (error) {
       console.warn('Failed to send wishlist notification:', error);
     }
   }
 
-  async sendFriendActivityNotification(friendId, activity, data = null) {
+async sendFriendActivityNotification(friendId, activity, data = null) {
     await this.delay(100);
     
     try {
@@ -156,6 +173,9 @@ async addItemToWishlist(wishlistId, item) {
       };
       
       await alertNotificationService.processNotification(notification);
+      
+      // Track friend activity for user's social insights
+      this.updateUserSocialStats('friendActivity', { friendId, activity, data });
     } catch (error) {
       console.warn('Failed to send friend activity notification:', error);
     }
@@ -167,7 +187,7 @@ async addItemToWishlist(wishlistId, item) {
     return [...this.giftActivities];
   }
 
-  async shareGift(giftId, friendIds, message = '') {
+async shareGift(giftId, friendIds, message = '') {
     await this.delay();
     
     const activities = friendIds.map(friendId => {
@@ -191,10 +211,14 @@ async addItemToWishlist(wishlistId, item) {
     });
 
     this.giftActivities.push(...activities);
+    
+    // Track sharing activity for user insights
+    this.updateUserSocialStats('giftShared', { giftId, friendCount: friendIds.length });
+    
     return activities;
   }
 
-  async recordGiftActivity(activityData) {
+async recordGiftActivity(activityData) {
     await this.delay();
     
     const newActivity = {
@@ -217,10 +241,14 @@ async addItemToWishlist(wishlistId, item) {
     };
 
     this.giftActivities.push(newActivity);
+    
+    // Sync activity with user profile if enabled
+    this.syncActivityWithUserProfile(newActivity);
+    
     return { ...newActivity };
   }
 
-  // Social Stats
+// Social Stats
   async getSocialStats() {
     await this.delay();
     
@@ -238,6 +266,84 @@ async addItemToWishlist(wishlistId, item) {
     };
 
     return stats;
+  }
+
+  // User Profile Integration Methods
+  async updateUserSocialStats(action, data = null) {
+    if (!this.userActivitySyncEnabled) return;
+    
+    try {
+      const { userService } = await import('@/services/api/userService');
+      
+      switch (action) {
+        case 'friendAdded':
+          // Update friend count in user profile
+          break;
+        case 'wishlistCreated':
+          // Update wishlist count in user profile
+          break;
+        case 'giftShared':
+        case 'friendActivity':
+          // Track social engagement for recommendations
+          break;
+      }
+    } catch (error) {
+      console.warn('Could not sync social stats with user profile:', error);
+    }
+  }
+
+  async trackUserWishlistActivity(action, item) {
+    if (!this.userActivitySyncEnabled) return;
+    
+    try {
+      const { userService } = await import('@/services/api/userService');
+      await userService.trackGiftInteraction(null, item.Id, 'wishlist_' + action);
+    } catch (error) {
+      console.warn('Could not track wishlist activity:', error);
+    }
+  }
+
+  async syncWishlistWithUserProfile(wishlist, action, item) {
+    if (!this.userActivitySyncEnabled) return;
+    
+    try {
+      const { userService } = await import('@/services/api/userService');
+      
+      if (action === 'item_added' && item?.category) {
+        // Update user preferences based on wishlist items
+        const currentPrefs = await userService.getPreferences();
+        if (!currentPrefs.giftCategories.includes(item.category)) {
+          const updatedPrefs = {
+            ...currentPrefs,
+            giftCategories: [...currentPrefs.giftCategories, item.category]
+          };
+          await userService.updatePreferences(updatedPrefs);
+        }
+      }
+    } catch (error) {
+      console.warn('Could not sync wishlist with user profile:', error);
+    }
+  }
+
+  async syncActivityWithUserProfile(activity) {
+    if (!this.userActivitySyncEnabled) return;
+    
+    try {
+      const { userService } = await import('@/services/api/userService');
+      
+      // Track social gift activities for user insights
+      if (activity.type === 'shared' && activity.price) {
+        await userService.addToOrderHistory({
+          giftName: activity.giftTitle,
+          recipientName: activity.recipientName || 'Friend',
+          price: activity.price,
+          category: 'Social'
+        });
+      }
+    } catch (error) {
+      console.warn('Could not sync activity with user profile:', error);
+    }
+}
   }
 }
 

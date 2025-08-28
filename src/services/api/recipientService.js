@@ -22,13 +22,17 @@ async create(recipientData) {
       Id: this.getNextId(),
       ...recipientData,
       giftHistory: recipientData.giftHistory || [],
-      preferences: {
+preferences: {
         preferredCategories: [],
         avoidedCategories: [],
         priceRange: { min: 0, max: 500 },
         lastUpdated: new Date().toISOString()
       },
-      interactionHistory: []
+      interactionHistory: [],
+      userConnection: {
+        linkedToUser: true,
+        syncWithProfile: true
+      }
     };
     this.data.push(newRecipient);
     return { ...newRecipient };
@@ -63,7 +67,10 @@ async create(recipientData) {
     recipient.giftHistory.unshift(giftEntry);
     
     // Update preferences based on gift
-    this.updateRecipientPreferences(recipient, giftData);
+this.updateRecipientPreferences(recipient, giftData);
+    
+    // Update user preferences based on gift purchase
+    this.syncWithUserPreferences(recipient, giftData);
     
     return { ...recipient };
   }
@@ -94,6 +101,27 @@ async create(recipientData) {
     recipient.preferences.lastUpdated = new Date().toISOString();
   }
 
+  async syncWithUserPreferences(recipient, giftData) {
+    try {
+      if (recipient.userConnection?.syncWithProfile) {
+        const { userService } = await import('@/services/api/userService');
+        
+        // Add gift purchase to user order history
+        await userService.addToOrderHistory({
+          giftName: giftData.title || `Gift for ${recipient.name}`,
+          recipientName: recipient.name,
+          price: giftData.price || 0,
+          category: giftData.category
+        });
+
+        // Track interaction for user personalization
+        await userService.trackGiftInteraction(recipient.Id, giftData.Id, 'purchase');
+      }
+    } catch (error) {
+      console.warn('Could not sync with user preferences:', error);
+    }
+  }
+
 async trackInteraction(recipientId, interactionType, giftData = null) {
     await this.delay(100);
     const recipient = this.data.find(r => r.Id === parseInt(recipientId));
@@ -110,6 +138,14 @@ async trackInteraction(recipientId, interactionType, giftData = null) {
     
     // Keep only last 50 interactions
     recipient.interactionHistory = recipient.interactionHistory.slice(0, 50);
+
+    // Sync interaction with user service for personalization
+    try {
+      const { userService } = await import('@/services/api/userService');
+      await userService.trackGiftInteraction(recipientId, giftData?.Id, interactionType);
+    } catch (error) {
+      console.warn('Could not sync interaction with user service:', error);
+    }
   }
 
   async getUpcomingBirthdays(daysAhead = 30) {

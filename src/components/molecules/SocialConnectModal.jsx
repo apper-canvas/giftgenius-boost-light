@@ -15,7 +15,7 @@ const SocialConnectModal = ({ isOpen, onClose }) => {
     tiktok: { connected: false, importing: false }
   });
 
-  const [importPreferences, setImportPreferences] = useState({
+const [importPreferences, setImportPreferences] = useState({
     posts: true,
     likes: true,
     saved: true,
@@ -26,7 +26,8 @@ const SocialConnectModal = ({ isOpen, onClose }) => {
   const [privacySettings, setPrivacySettings] = useState({
     shareWithApp: true,
     anonymizeData: false,
-    deleteAfterImport: false
+    deleteAfterImport: false,
+    updateUserProfile: true
   });
 
   const [isImporting, setIsImporting] = useState(false);
@@ -97,7 +98,7 @@ const SocialConnectModal = ({ isOpen, onClose }) => {
     toast.info(`Disconnected from ${platform.name}`);
   };
 
-  const handleImportWishlists = async () => {
+const handleImportWishlists = async () => {
     const connectedPlatforms = Object.entries(connections)
       .filter(([_, data]) => data.connected)
       .map(([platform, _]) => platform);
@@ -109,9 +110,23 @@ const SocialConnectModal = ({ isOpen, onClose }) => {
 
     setIsImporting(true);
     
-    // Simulate import process
-    setTimeout(() => {
+    // Simulate import process with user preference integration
+    setTimeout(async () => {
       setIsImporting(false);
+      
+      if (privacySettings.updateUserProfile) {
+        try {
+          // Update user preferences based on imported data
+          const { userService } = await import('@/services/api/userService');
+          await userService.updatePreferences({
+            importedFrom: connectedPlatforms,
+            lastImport: new Date().toISOString()
+          });
+        } catch (error) {
+          console.warn('Could not update user preferences:', error);
+        }
+      }
+      
       toast.success(`Successfully imported wishlists from ${connectedPlatforms.length} platform(s)!`);
       onClose();
     }, 3000);
@@ -238,7 +253,7 @@ const SocialConnectModal = ({ isOpen, onClose }) => {
                       { key: 'follows', label: 'Followed Accounts', desc: 'Analyze accounts you follow' },
                       { key: 'stories', label: 'Story Interactions', desc: 'Include story views and reactions' }
                     ].map((pref) => (
-                      <label key={pref.key} className="flex items-start space-x-3 cursor-pointer">
+<label key={pref.key} className="flex items-start space-x-3 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={importPreferences[pref.key]}
@@ -277,10 +292,11 @@ const SocialConnectModal = ({ isOpen, onClose }) => {
                     </div>
 
                     <div className="space-y-3">
-                      {[
+{[
                         { key: 'shareWithApp', label: 'Allow data sharing with gift recommendations', desc: 'Enable for personalized suggestions' },
                         { key: 'anonymizeData', label: 'Anonymize imported data', desc: 'Remove personal identifiers' },
-                        { key: 'deleteAfterImport', label: 'Delete data after processing', desc: 'Remove imported data once analyzed' }
+                        { key: 'deleteAfterImport', label: 'Delete data after processing', desc: 'Remove imported data once analyzed' },
+                        { key: 'updateUserProfile', label: 'Update my account preferences', desc: 'Sync imported preferences with your profile' }
                       ].map((setting) => (
                         <label key={setting.key} className="flex items-start space-x-3 cursor-pointer">
                           <input
