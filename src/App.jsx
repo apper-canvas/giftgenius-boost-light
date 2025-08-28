@@ -12,12 +12,14 @@ import SocialGifting from "@/components/pages/SocialGifting";
 import DIYInstructions from "@/components/pages/DIYInstructions";
 import Trends from "@/components/pages/Trends";
 import VirtualWrapping from "@/components/pages/VirtualWrapping";
+import EcommerceStores from "@/components/pages/EcommerceStores";
+
 function App() {
   return (
     <BrowserRouter>
       <div className="App">
 <Routes>
-          <Route path="/" element={<Layout />}>
+<Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="recipients" element={<Recipients />} />
             <Route path="reminders" element={<Reminders />} />
@@ -26,8 +28,9 @@ function App() {
             <Route path="group-gifts" element={<GroupGifts />} />
             <Route path="social" element={<SocialGifting />} />
             <Route path="virtual-wrapping" element={<VirtualWrapping />} />
-<Route path="diy-instructions/:id" element={<DIYInstructions />} />
+            <Route path="diy-instructions/:id" element={<DIYInstructions />} />
             <Route path="trends" element={<Trends />} />
+            <Route path="stores" element={<EcommerceStores />} />
           </Route>
         </Routes>
         

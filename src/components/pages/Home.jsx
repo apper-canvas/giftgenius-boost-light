@@ -157,9 +157,9 @@ animate={{ opacity: 1, y: 0 }}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">Smart Recommendations</h3>
                 <p className="text-gray-600 text-sm">AI-powered suggestions based on your history</p>
-              </div>
-              <Button variant="accent" size="sm" onClick={handleQuickGift}>
-                Find Gifts
+</div>
+              <Button variant="accent" size="sm" onClick={() => navigate("/stores")}>
+                Browse Stores
               </Button>
             </div>
           </Card>
@@ -308,14 +308,14 @@ animate={{ opacity: 1, y: 0 }}
                       </div>
                     )}
 
-                    <Button 
+<Button 
                       variant="primary" 
                       size="sm" 
                       className="w-full"
-                      icon="Sparkles"
-                      onClick={() => handleFindGifts(recipient)}
+                      icon="Store"
+                      onClick={() => navigate("/stores")}
                     >
-                      Find Gifts
+                      Shop for Gifts
                     </Button>
                   </div>
                 </Card>
@@ -345,8 +345,11 @@ animate={{ opacity: 1, y: 0 }}
                   Start by adding someone special to your recipients list, and let our AI help you discover perfect gifts for any occasion.
                 </p>
               </div>
-              <Button variant="primary" icon="Plus" onClick={() => navigate("/recipients")}>
+<Button variant="primary" icon="Plus" onClick={() => navigate("/recipients")}>
                 Add Your First Recipient
+              </Button>
+              <Button variant="outline" icon="Store" onClick={() => navigate("/stores")} className="ml-3">
+                Browse Gift Stores
               </Button>
             </div>
           </Card>

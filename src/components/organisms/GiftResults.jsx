@@ -69,9 +69,25 @@ const [filters, setFilters] = React.useState({
     }
   };
 
-  const handleBuyGift = (gift) => {
-    toast.success(`Redirecting to purchase ${gift.title}...`);
-    // In real app, would open purchase URL
+const handleBuyGift = async (gift) => {
+    try {
+      const { ecommerceService } = await import('@/services/api/ecommerceService');
+      const purchaseUrl = await ecommerceService.getPurchaseUrl(gift);
+      
+      if (purchaseUrl) {
+        window.open(purchaseUrl, '_blank');
+        toast.success(`Opening ${gift.title} in your preferred store...`);
+        
+        // Track successful purchase redirect
+        const { giftService } = await import('@/services/api/giftService');
+        await giftService.trackUserInteraction('purchase_redirect', gift);
+      } else {
+        toast.warning('Purchase link not available for this item');
+      }
+    } catch (error) {
+      console.error('Purchase redirect error:', error);
+      toast.error('Unable to open purchase link');
+    }
   };
 
   const filteredAndSortedGifts = React.useMemo(() => {

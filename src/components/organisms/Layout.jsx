@@ -16,10 +16,11 @@ const navigation = [
     { name: "Reminders", href: "/reminders", icon: "Bell" },
     { name: "Saved", href: "/saved", icon: "Bookmark" },
     { name: "Price Alerts", href: "/price-alerts", icon: "TrendingDown" },
-{ name: "Group Gifts", href: "/group-gifts", icon: "Users2" },
+    { name: "Group Gifts", href: "/group-gifts", icon: "Users2" },
     { name: "Social", href: "/social", icon: "Share2" },
     { name: "Virtual Wrapping", href: "/virtual-wrapping", icon: "Gift" },
-    { name: "Trends", href: "/trends", icon: "TrendingUp" }
+    { name: "Trends", href: "/trends", icon: "TrendingUp" },
+    { name: "Stores", href: "/stores", icon: "Store" }
   ];
 
   const closeMobileMenu = () => {

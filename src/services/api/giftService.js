@@ -173,12 +173,15 @@ class GiftService {
     this.userPreferences.lastUpdated = new Date().toISOString();
   }
 
-  getInteractionWeight(interactionType) {
+getInteractionWeight(interactionType) {
     const weights = {
       'view': 1,
       'save': 3,
       'share': 2,
       'purchase': 5,
+      'purchase_attempt': 4,
+      'purchase_redirect': 4,
+      'store_view': 2,
       'click': 1
     };
     return weights[interactionType] || 1;
@@ -445,17 +448,20 @@ async generateDIYInstructions(giftId) {
     return this.data.filter(gift => gift.category === category);
   }
 
-  async create(giftData) {
+async create(giftData) {
     await this.delay(400);
     const newGift = {
       Id: this.getNextId(),
       ...giftData,
-      tags: giftData.tags || []
+      tags: giftData.tags || [],
+      storeInfo: giftData.storeInfo || null,
+      purchaseUrls: giftData.purchaseUrls || {}
     };
     this.data.push(newGift);
     return { ...newGift };
   }
-async update(id, giftData) {
+
+  async update(id, giftData) {
     await this.delay(350);
     const index = this.data.findIndex(g => g.Id === parseInt(id));
     if (index === -1) throw new Error("Gift not found");
@@ -471,6 +477,16 @@ async update(id, giftData) {
     
     const deleted = this.data.splice(index, 1)[0];
     return { ...deleted };
+  }
+
+  async getStoreAvailability(giftId) {
+    await this.delay(200);
+    const gift = this.data.find(g => g.Id === parseInt(giftId));
+    if (!gift) return [];
+    
+    // Import e-commerce service to check store availability
+    const { ecommerceService } = await import('./ecommerceService');
+    return await ecommerceService.getStoreAvailability(gift);
   }
 
   getNextId() {

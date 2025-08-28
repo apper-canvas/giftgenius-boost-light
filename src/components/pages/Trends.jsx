@@ -83,24 +83,31 @@ const loadTrendingData = async () => {
     }
   };
 
-  const handleBuyGift = async (gift) => {
+const handleBuyGift = async (gift) => {
     try {
       // Track purchase interaction for learning
-      await giftService.trackUserInteraction('purchase', gift);
+      await giftService.trackUserInteraction('purchase_attempt', gift);
       
-      if (gift.purchaseUrl) {
+      // Get best purchase URL from e-commerce integration
+      const { ecommerceService } = await import('@/services/api/ecommerceService');
+      const purchaseUrl = await ecommerceService.getPurchaseUrl(gift);
+      
+      if (purchaseUrl) {
+        window.open(purchaseUrl, '_blank');
+        toast.success('Opening best price for this item...');
+      } else if (gift.purchaseUrl) {
         window.open(gift.purchaseUrl, '_blank');
-        toast.success('Thank you for your purchase! This helps us learn your preferences.');
+        toast.info('Redirecting to store...');
       } else {
         toast.warning('Purchase link not available');
       }
     } catch (error) {
-      console.warn('Could not track purchase:', error);
+      console.warn('Could not process purchase:', error);
       if (gift.purchaseUrl) {
         window.open(gift.purchaseUrl, '_blank');
         toast.info('Redirecting to purchase...');
       } else {
-        toast.warning('Purchase link not available');
+        toast.error('Unable to complete purchase');
       }
     }
   };
