@@ -44,7 +44,7 @@ const Trends = () => {
     loadTrendingData();
   }, [selectedOccasion, selectedDemographic, sortBy]);
 
-  const loadTrendingData = async () => {
+const loadTrendingData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -53,7 +53,8 @@ const Trends = () => {
         giftService.getTrendingGifts({
           occasion: selectedOccasion,
           demographic: selectedDemographic,
-          sortBy
+          sortBy,
+          includePersonalization: true // Enable personalization for trends
         }),
         giftService.getTrendingCategories()
       ]);
@@ -74,25 +75,43 @@ const Trends = () => {
 
   const handleSaveGift = async (gift) => {
     try {
-      // In a real app, this would save to user's saved gifts
+      // Track save interaction for learning
+      await giftService.trackUserInteraction('save', gift);
       toast.success(`${gift.title} saved to your favorites!`);
     } catch (error) {
       toast.error('Failed to save gift');
     }
   };
 
-  const handleBuyGift = (gift) => {
-    if (gift.purchaseUrl) {
-      window.open(gift.purchaseUrl, '_blank');
-      toast.info('Redirecting to purchase...');
-    } else {
-      toast.warning('Purchase link not available');
+  const handleBuyGift = async (gift) => {
+    try {
+      // Track purchase interaction for learning
+      await giftService.trackUserInteraction('purchase', gift);
+      
+      if (gift.purchaseUrl) {
+        window.open(gift.purchaseUrl, '_blank');
+        toast.success('Thank you for your purchase! This helps us learn your preferences.');
+      } else {
+        toast.warning('Purchase link not available');
+      }
+    } catch (error) {
+      console.warn('Could not track purchase:', error);
+      if (gift.purchaseUrl) {
+        window.open(gift.purchaseUrl, '_blank');
+        toast.info('Redirecting to purchase...');
+      } else {
+        toast.warning('Purchase link not available');
+      }
     }
   };
 
+  // Enhanced filtering with personalization consideration
   const filteredGifts = trendingGifts.filter(gift =>
     gift.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    gift.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    gift.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    gift.personalizationReasons?.some(reason => 
+      reason.toLowerCase().includes(searchQuery.toLowerCase())
+    )
   );
 
   if (loading) return <Loading />;

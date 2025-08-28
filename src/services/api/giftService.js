@@ -15,45 +15,227 @@ class GiftService {
     return gift ? { ...gift } : null;
   }
 
-  async getRecommendations({ recipientId, occasionId, budget, interests }) {
+// User preference tracking
+  userPreferences = {
+    categories: {},
+    priceRanges: {},
+    tags: {},
+    lastUpdated: new Date().toISOString()
+  };
+
+  async getRecommendations({ recipientId, occasionId, budget, interests, includePersonalization = true }) {
     await this.delay(800); // Simulate AI processing time
     
     let recommendations = [...this.data];
+    
+    // Get recipient data for personalization
+    let recipientData = null;
+    if (recipientId && includePersonalization) {
+      try {
+        const { recipientService } = await import('@/services/api/recipientService');
+        recipientData = await recipientService.getById(recipientId);
+      } catch (error) {
+        console.warn('Could not load recipient data for personalization');
+      }
+    }
     
     // Filter by budget if provided
     if (budget) {
       recommendations = recommendations.filter(gift => gift.price <= budget * 1.2); // Allow 20% over budget
     }
     
-    // Boost match scores based on interests
-    if (interests && interests.length > 0) {
-      recommendations = recommendations.map(gift => {
-        let scoreBoost = 0;
+    // Apply personalization scoring
+    recommendations = recommendations.map(gift => {
+      let scoreBoost = 0;
+      let personalizationReasons = [];
+      
+      // Base interest matching
+      if (interests && interests.length > 0) {
         const giftTags = gift.tags || [];
         const giftTitle = gift.title.toLowerCase();
         const giftReasoning = gift.reasoning.toLowerCase();
         
         interests.forEach(interest => {
           const interestLower = interest.toLowerCase();
-          // Check if interest matches tags, title, or reasoning
           if (giftTags.some(tag => tag.toLowerCase().includes(interestLower)) ||
               giftTitle.includes(interestLower) ||
               giftReasoning.includes(interestLower)) {
             scoreBoost += 15;
+            personalizationReasons.push(`Matches ${interest} interest`);
           }
         });
+      }
+      
+      // Recipient-specific personalization
+      if (recipientData && includePersonalization) {
+        // Gift history analysis - avoid duplicates and find patterns
+        const giftHistory = recipientData.giftHistory || [];
+        const purchasedCategories = giftHistory.map(g => g.category);
+        const purchasedTags = giftHistory.flatMap(g => g.tags || []);
         
-        return {
-          ...gift,
-          matchScore: Math.min(99, gift.matchScore + scoreBoost)
-        };
+        // Avoid exact duplicates
+        const isDuplicate = giftHistory.some(g => g.title === gift.title);
+        if (isDuplicate) {
+          scoreBoost -= 30;
+          personalizationReasons.push('Similar gift purchased before');
+        }
+        
+        // Boost based on successful category patterns
+        if (purchasedCategories.includes(gift.category) && purchasedCategories.length > 0) {
+          scoreBoost += 10;
+          personalizationReasons.push(`Popular category for ${recipientData.name}`);
+        }
+        
+        // Boost based on tag patterns
+        const commonTags = (gift.tags || []).filter(tag => 
+          purchasedTags.some(pTag => pTag.toLowerCase().includes(tag.toLowerCase()))
+        );
+        if (commonTags.length > 0) {
+          scoreBoost += commonTags.length * 8;
+          personalizationReasons.push(`Matches previous preferences`);
+        }
+        
+        // Price range preference
+        if (recipientData.preferences?.priceRange) {
+          const priceRange = recipientData.preferences.priceRange;
+          if (gift.price >= priceRange.min && gift.price <= priceRange.max) {
+            scoreBoost += 12;
+            personalizationReasons.push('Within preferred price range');
+          }
+        }
+        
+        // Interaction history analysis
+        const interactions = recipientData.interactionHistory || [];
+        const viewedCategories = interactions
+          .filter(i => i.type === 'view' && i.category)
+          .map(i => i.category);
+        
+        if (viewedCategories.includes(gift.category)) {
+          scoreBoost += 8;
+          personalizationReasons.push('Based on browsing history');
+        }
+      }
+      
+      // Global user preference learning
+      if (this.userPreferences.categories[gift.category]) {
+        const categoryScore = this.userPreferences.categories[gift.category];
+        scoreBoost += Math.min(categoryScore * 2, 15);
+        personalizationReasons.push('Trending in your preferences');
+      }
+      
+      // Tag preference scoring
+      (gift.tags || []).forEach(tag => {
+        if (this.userPreferences.tags[tag]) {
+          scoreBoost += Math.min(this.userPreferences.tags[tag] * 1.5, 10);
+        }
       });
-    }
+      
+      return {
+        ...gift,
+        matchScore: Math.min(99, Math.max(1, gift.matchScore + scoreBoost)),
+        personalizationScore: scoreBoost,
+        personalizationReasons,
+        isPersonalized: scoreBoost > 0
+      };
+    });
     
     // Sort by match score and return top recommendations
     return recommendations
       .sort((a, b) => b.matchScore - a.matchScore)
-.slice(0, 15); // Return top 15 recommendations
+      .slice(0, 15); // Return top 15 recommendations
+  }
+
+  // Track user interactions for learning
+  async trackUserInteraction(interactionType, giftData) {
+    await this.delay(100);
+    
+    if (!giftData) return;
+    
+    // Update category preferences
+    if (giftData.category) {
+      this.userPreferences.categories[giftData.category] = 
+        (this.userPreferences.categories[giftData.category] || 0) + this.getInteractionWeight(interactionType);
+    }
+    
+    // Update tag preferences
+    (giftData.tags || []).forEach(tag => {
+      this.userPreferences.tags[tag] = 
+        (this.userPreferences.tags[tag] || 0) + this.getInteractionWeight(interactionType) * 0.5;
+    });
+    
+    // Update price range preferences
+    if (giftData.price) {
+      const priceRange = Math.floor(giftData.price / 50) * 50; // Round to nearest 50
+      this.userPreferences.priceRanges[priceRange] = 
+        (this.userPreferences.priceRanges[priceRange] || 0) + this.getInteractionWeight(interactionType);
+    }
+    
+    this.userPreferences.lastUpdated = new Date().toISOString();
+  }
+
+  getInteractionWeight(interactionType) {
+    const weights = {
+      'view': 1,
+      'save': 3,
+      'share': 2,
+      'purchase': 5,
+      'click': 1
+    };
+    return weights[interactionType] || 1;
+  }
+
+  // Get personalized recommendations for home page
+  async getPersonalizedSuggestions(limit = 6) {
+    await this.delay(500);
+    
+    let suggestions = [...this.data];
+    
+    // Score based on user preferences
+    suggestions = suggestions.map(gift => {
+      let score = gift.matchScore || 75;
+      
+      // Boost based on category preferences
+      if (this.userPreferences.categories[gift.category]) {
+        score += this.userPreferences.categories[gift.category] * 2;
+      }
+      
+      // Boost based on tag preferences
+      (gift.tags || []).forEach(tag => {
+        if (this.userPreferences.tags[tag]) {
+          score += this.userPreferences.tags[tag];
+        }
+      });
+      
+      return {
+        ...gift,
+        personalizedScore: score,
+        isPersonalized: true,
+        personalizationReason: this.getPersonalizationReason(gift)
+      };
+    });
+    
+    return suggestions
+      .sort((a, b) => b.personalizedScore - a.personalizedScore)
+      .slice(0, limit);
+  }
+
+  getPersonalizationReason(gift) {
+    const reasons = [];
+    
+    if (this.userPreferences.categories[gift.category]) {
+      reasons.push(`You often explore ${gift.category.toLowerCase()} gifts`);
+    }
+    
+    const popularTags = (gift.tags || []).filter(tag => this.userPreferences.tags[tag]);
+    if (popularTags.length > 0) {
+      reasons.push(`Matches your interest in ${popularTags[0].toLowerCase()}`);
+    }
+    
+    if (reasons.length === 0) {
+      reasons.push('Trending and highly rated');
+    }
+    
+    return reasons[0];
   }
 
   // Get trending gifts with filters

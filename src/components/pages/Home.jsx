@@ -90,6 +90,28 @@ const handleQuickGift = () => {
 animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
+        {/* AI Recommendations Section */}
+        <Card className="md:col-span-full mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold flex items-center space-x-2 mb-2">
+                <ApperIcon name="Brain" size={20} className="text-indigo-600" />
+                <span>Recommended for You</span>
+                <Badge variant="success" size="sm" className="ml-2">AI Powered</Badge>
+              </h3>
+              <p className="text-gray-600 text-sm">Personalized suggestions based on your preferences and browsing history</p>
+            </div>
+            <Button 
+              onClick={() => navigate('/recipients')}
+              variant="primary" 
+              size="sm"
+            >
+              <ApperIcon name="ArrowRight" size={16} />
+              Explore More
+            </Button>
+          </div>
+        </Card>
+
         {/* Trending Gifts Section */}
         <Card className="md:col-span-full mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
           <div className="flex items-center justify-between">
@@ -133,8 +155,8 @@ animate={{ opacity: 1, y: 0 }}
                 <ApperIcon name="Sparkles" className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900">Quick Gift</h3>
-                <p className="text-gray-600 text-sm">Find gifts for existing recipients</p>
+                <h3 className="text-lg font-semibold text-gray-900">Smart Recommendations</h3>
+                <p className="text-gray-600 text-sm">AI-powered suggestions based on your history</p>
               </div>
               <Button variant="accent" size="sm" onClick={handleQuickGift}>
                 Find Gifts
@@ -142,7 +164,7 @@ animate={{ opacity: 1, y: 0 }}
             </div>
           </Card>
 
-<Card className="text-center bg-gradient-to-br from-green-50 to-emerald-50 border-green-200" hoverable>
+          <Card className="text-center bg-gradient-to-br from-green-50 to-emerald-50 border-green-200" hoverable>
             <div className="space-y-4">
               <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto">
                 <ApperIcon name="Hammer" className="w-8 h-8 text-white" />

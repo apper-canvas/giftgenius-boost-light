@@ -14,6 +14,19 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
     onSave?.(gift);
   };
 
+React.useEffect(() => {
+    // Track view interaction when card is rendered
+    const trackView = async () => {
+      try {
+        const { giftService } = await import('@/services/api/giftService');
+        await giftService.trackUserInteraction('view', gift);
+      } catch (error) {
+        console.warn('Could not track gift view:', error);
+      }
+    };
+    trackView();
+  }, [gift.Id]);
+
   const getMatchScoreColor = (score) => {
     if (score >= 90) return "success";
     if (score >= 75) return "accent";
@@ -25,6 +38,15 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
     if (days <= 1) return "Zap";
     if (days <= 3) return "Truck";
     return "Package";
+  };
+
+  const handleAction = async (actionType) => {
+    try {
+      const { giftService } = await import('@/services/api/giftService');
+      await giftService.trackUserInteraction(actionType, gift);
+    } catch (error) {
+      console.warn('Could not track interaction:', error);
+    }
   };
 
   return (
@@ -47,6 +69,19 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
     }}
     className={className}>
     <Card className="relative overflow-hidden group" hoverable={false}>
+        {/* Personalization Badge */}
+        {gift.isPersonalized && (
+          <div className="absolute top-4 left-4 z-10">
+            <Badge
+              variant="success"
+              size="sm"
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+            >
+              <ApperIcon name="Brain" size={12} className="mr-1" />
+              For You
+            </Badge>
+          </div>
+        )}
         {/* Save Button */}
         <button
             onClick={handleSave}
@@ -112,18 +147,37 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
                     </Badge>)}
                 </div>}
                 {/* Action Buttons */}
-{/* Action Buttons */}
+{/* Personalization Reason */}
+                {gift.personalizationReason && (
+                  <div className="bg-indigo-50 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-indigo-700 flex items-center space-x-2">
+                      <ApperIcon name="Lightbulb" size={14} />
+                      <span>{gift.personalizationReason}</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
                 <div
                     className={`grid gap-2 pt-2 ${gift.category === "DIY" ? "grid-cols-2" : "grid-cols-2"}`}>
                     <div className="flex gap-2">
-                        <Button variant="outline" size="sm" onClick={handleSave} className="flex-1">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            handleSave();
+                            handleAction('save');
+                          }} 
+                          className="flex-1"
+                        >
                             <ApperIcon name={isSaved ? "Check" : "Bookmark"} size={16} />
                             {isSaved ? "Saved" : "Save"}
                         </Button>
                         <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
+                            onClick={async () => {
+                                await handleAction('share');
                                 if (navigator.share) {
                                     navigator.share({
                                         title: gift.title,
@@ -132,7 +186,6 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
                                     });
                                 } else {
                                     navigator.clipboard.writeText(`${gift.title} - ${gift.purchaseUrl || window.location.href}`);
-
                                     onSave?.({
                                         ...gift,
                                         shared: true
@@ -146,13 +199,24 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
                         <Button
                             variant="accent"
                             size="sm"
-                            onClick={() => window.open(`/virtual-wrapping?giftId=${gift.Id}`, '_blank')}
+                            onClick={async () => {
+                              await handleAction('click');
+                              window.open(`/virtual-wrapping?giftId=${gift.Id}`, '_blank');
+                            }}
                             className="flex-1">
                             <ApperIcon name="Gift" size={16} />
                             Wrap Gift
                         </Button>
                         {gift.category === "DIY" && (
-                            <Button variant="success" size="sm" onClick={() => onViewInstructions?.(gift)} className="flex-1">
+                            <Button 
+                              variant="success" 
+                              size="sm" 
+                              onClick={async () => {
+                                await handleAction('click');
+                                onViewInstructions?.(gift);
+                              }} 
+                              className="flex-1"
+                            >
                                 <ApperIcon name="BookOpen" size={16} />Instructions
                             </Button>
                         )}
@@ -160,7 +224,10 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
                     <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => onBuy?.(gift)}
+                        onClick={async () => {
+                          await handleAction('purchase');
+                          onBuy?.(gift);
+                        }}
                         className="col-span-2">
                         <ApperIcon name="ShoppingCart" size={16} />Buy Now
                     </Button>

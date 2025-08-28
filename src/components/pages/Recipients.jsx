@@ -109,7 +109,14 @@ const Recipients = () => {
     }
   };
 
-  const handleFindGifts = (recipient) => {
+const handleFindGifts = async (recipient) => {
+    // Track user interaction for learning
+    try {
+      await recipientService.trackInteraction(recipient.Id, 'view');
+    } catch (error) {
+      console.warn('Could not track interaction:', error);
+    }
+    
     setSelectedRecipient(recipient);
     // Use the first occasion or create a default one
     if (recipient.occasions && recipient.occasions.length > 0) {
