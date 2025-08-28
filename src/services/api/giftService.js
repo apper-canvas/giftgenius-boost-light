@@ -147,12 +147,11 @@ class GiftService {
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, 15); // Return top 15 recommendations
   }
+}
 
   // Track user interactions for learning
   async trackUserInteraction(interactionType, giftData) {
     await this.delay(100);
-    
-    if (!giftData) return;
     
     // Update category preferences
     if (giftData.category) {
@@ -174,12 +173,12 @@ class GiftService {
     }
     
     this.userPreferences.lastUpdated = new Date().toISOString();
+this.userPreferences.lastUpdated = new Date().toISOString();
   }
 
-getInteractionWeight(interactionType) {
+  getInteractionWeight(interactionType) {
     const weights = {
       'view': 1,
-      'save': 3,
       'share': 2,
       'purchase': 5,
       'purchase_attempt': 4,

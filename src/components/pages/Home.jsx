@@ -84,10 +84,10 @@ const handleQuickGift = () => {
         </p>
       </motion.div>
 
-      {/* Quick Actions */}
+{/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-animate={{ opacity: 1, y: 0 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
         {/* AI Recommendations Section */}
