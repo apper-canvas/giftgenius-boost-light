@@ -10,6 +10,7 @@ import Saved from "@/components/pages/Saved";
 import GroupGifts from "@/components/pages/GroupGifts";
 import SocialGifting from "@/components/pages/SocialGifting";
 import DIYInstructions from "@/components/pages/DIYInstructions";
+import Trends from "@/components/pages/Trends";
 
 function App() {
   return (
@@ -24,7 +25,8 @@ function App() {
             <Route path="price-alerts" element={<PriceAlerts />} />
             <Route path="group-gifts" element={<GroupGifts />} />
             <Route path="social" element={<SocialGifting />} />
-            <Route path="diy-instructions/:id" element={<DIYInstructions />} />
+<Route path="diy-instructions/:id" element={<DIYInstructions />} />
+            <Route path="trends" element={<Trends />} />
           </Route>
         </Routes>
         

@@ -87,9 +87,30 @@ const handleQuickGift = () => {
       {/* Quick Actions */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
+        {/* Trending Gifts Section */}
+        <Card className="md:col-span-full mb-6 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold flex items-center space-x-2 mb-2">
+                <ApperIcon name="TrendingUp" size={20} className="text-primary-500" />
+                <span>Trending This Week</span>
+              </h3>
+              <p className="text-gray-600 text-sm">Discover what's popular right now</p>
+            </div>
+            <Button 
+              onClick={() => navigate('/trends')}
+              variant="primary" 
+              size="sm"
+            >
+              <ApperIcon name="ArrowRight" size={16} />
+              View All Trends
+            </Button>
+          </div>
+        </Card>
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="text-center bg-gradient-to-br from-primary-50 to-secondary-50 border-primary-200" hoverable>
             <div className="space-y-4">

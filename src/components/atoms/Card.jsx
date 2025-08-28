@@ -5,11 +5,12 @@ const Card = React.forwardRef(
   ({ className, variant = "default", hoverable = false, children, ...props }, ref) => {
     const baseClasses = "bg-surface rounded-card shadow-card border border-gray-100";
     
-    const variantClasses = {
+const variantClasses = {
       default: "p-6",
       compact: "p-4",
       spacious: "p-8",
-      flush: "p-0"
+      flush: "p-0",
+      trending: "p-6 bg-gradient-to-br from-orange-50 to-red-50 border-orange-200"
     };
     
     const hoverClasses = hoverable 

@@ -16,8 +16,9 @@ const navigation = [
     { name: "Reminders", href: "/reminders", icon: "Bell" },
     { name: "Saved", href: "/saved", icon: "Bookmark" },
     { name: "Price Alerts", href: "/price-alerts", icon: "TrendingDown" },
-    { name: "Group Gifts", href: "/group-gifts", icon: "Users2" },
-    { name: "Social", href: "/social", icon: "Share2" }
+{ name: "Group Gifts", href: "/group-gifts", icon: "Users2" },
+    { name: "Social", href: "/social", icon: "Share2" },
+    { name: "Trends", href: "/trends", icon: "TrendingUp" }
   ];
 
   const closeMobileMenu = () => {

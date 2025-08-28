@@ -53,10 +53,97 @@ class GiftService {
     // Sort by match score and return top recommendations
     return recommendations
       .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 15); // Return top 15 recommendations
-}
+.slice(0, 15); // Return top 15 recommendations
+  }
 
-  async generateDIYInstructions(giftId) {
+  // Get trending gifts with filters
+  async getTrendingGifts({ occasion = 'all', demographic = 'all', sortBy = 'trending' } = {}) {
+    await this.delay(800);
+    
+    let gifts = [...this.data];
+    
+    // Add trending data to gifts
+    gifts = gifts.map(gift => ({
+      ...gift,
+      trendScore: Math.floor(Math.random() * 100) + 1,
+      growthPercentage: Math.floor(Math.random() * 150) - 25, // -25 to +125
+      popularityRank: Math.floor(Math.random() * 100) + 1,
+      weeklyViews: Math.floor(Math.random() * 10000) + 500,
+      isTrending: Math.random() > 0.4 // 60% chance of trending
+    }));
+    
+    // Filter by occasion
+    if (occasion !== 'all') {
+      gifts = gifts.filter(gift => 
+        gift.tags?.some(tag => tag.toLowerCase().includes(occasion.toLowerCase())) ||
+        gift.title.toLowerCase().includes(occasion.toLowerCase())
+      );
+    }
+    
+    // Filter by demographic
+    if (demographic !== 'all') {
+      const demographicKeywords = {
+        'teen': ['teen', 'young', 'student', 'school'],
+        'young-adult': ['adult', 'professional', 'career', 'modern'],
+        'adult': ['mature', 'sophisticated', 'premium', 'luxury'],
+        'senior': ['classic', 'traditional', 'comfort', 'elegant'],
+        'family': ['family', 'kids', 'children', 'home']
+      };
+      
+      const keywords = demographicKeywords[demographic] || [];
+      if (keywords.length > 0) {
+        gifts = gifts.filter(gift =>
+          keywords.some(keyword =>
+            gift.title.toLowerCase().includes(keyword) ||
+            gift.reasoning.toLowerCase().includes(keyword) ||
+            gift.tags?.some(tag => tag.toLowerCase().includes(keyword))
+          )
+        );
+      }
+    }
+    
+    // Sort results
+    switch (sortBy) {
+      case 'trending':
+        gifts.sort((a, b) => b.trendScore - a.trendScore);
+        break;
+      case 'popular':
+        gifts.sort((a, b) => b.weeklyViews - a.weeklyViews);
+        break;
+      case 'recent':
+        gifts.sort((a, b) => b.Id - a.Id);
+        break;
+      case 'price-asc':
+        gifts.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        break;
+      case 'price-desc':
+        gifts.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
+        break;
+      default:
+        gifts.sort((a, b) => b.trendScore - a.trendScore);
+    }
+    
+    return gifts.slice(0, 20);
+  }
+
+  // Get trending categories
+  async getTrendingCategories() {
+    await this.delay(600);
+    
+    const categories = [
+      { name: 'Tech Gadgets', itemCount: 45, growthPercentage: 35 },
+      { name: 'Home & Living', itemCount: 32, growthPercentage: 22 },
+      { name: 'Fashion', itemCount: 28, growthPercentage: 18 },
+      { name: 'Beauty & Care', itemCount: 24, growthPercentage: 15 },
+      { name: 'Sports & Fitness', itemCount: 18, growthPercentage: 8 },
+      { name: 'Books & Media', itemCount: 15, growthPercentage: -5 },
+      { name: 'Food & Drinks', itemCount: 12, growthPercentage: 42 },
+      { name: 'DIY & Crafts', itemCount: 10, growthPercentage: 28 }
+    ];
+    
+    return categories.sort((a, b) => b.growthPercentage - a.growthPercentage);
+  }
+async generateDIYInstructions(giftId) {
     await this.delay(500);
     const gift = await this.getById(giftId);
     
@@ -176,7 +263,7 @@ class GiftService {
     return this.data.filter(gift => gift.category === category);
   }
 
-async create(giftData) {
+  async create(giftData) {
     await this.delay(400);
     const newGift = {
       Id: this.getNextId(),
@@ -186,8 +273,7 @@ async create(giftData) {
     this.data.push(newGift);
     return { ...newGift };
   }
-
-  async update(id, giftData) {
+async update(id, giftData) {
     await this.delay(350);
     const index = this.data.findIndex(g => g.Id === parseInt(id));
     if (index === -1) throw new Error("Gift not found");
