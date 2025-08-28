@@ -7,6 +7,11 @@ import ApperIcon from "@/components/ApperIcon";
 const FilterPanel = ({ className, filters, onFiltersChange, onReset }) => {
   const categories = ["Products", "Experiences", "DIY"];
   
+  const materials = [
+    "Wood", "Metal", "Glass", "Ceramic", "Fabric", "Leather", 
+    "Plastic", "Paper", "Bamboo", "Stone", "Silicone"
+  ];
+
   const handleCategoryToggle = (category) => {
     const newCategories = filters.categories.includes(category)
       ? filters.categories.filter(c => c !== category)
@@ -18,12 +23,33 @@ const FilterPanel = ({ className, filters, onFiltersChange, onReset }) => {
     });
   };
 
+  const handleMaterialToggle = (material) => {
+    const newMaterials = filters.materials?.includes(material)
+      ? filters.materials.filter(m => m !== material)
+      : [...(filters.materials || []), material];
+    
+    onFiltersChange({
+      ...filters,
+      materials: newMaterials
+    });
+  };
+
   const handlePriceChange = (field, value) => {
     onFiltersChange({
       ...filters,
       priceRange: {
         ...filters.priceRange,
         [field]: parseInt(value) || 0
+      }
+    });
+  };
+
+  const handleAgeRangeChange = (field, value) => {
+    onFiltersChange({
+      ...filters,
+      ageRange: {
+        ...filters.ageRange,
+        [field]: parseInt(value) || (field === 'min' ? 1 : 100)
       }
     });
   };
@@ -62,6 +88,24 @@ const FilterPanel = ({ className, filters, onFiltersChange, onReset }) => {
           ))}
         </div>
 </div>
+
+      {/* Materials Filter */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-gray-700">Materials</h4>
+        <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+          {materials.map((material) => (
+            <label key={material} className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={filters.materials?.includes(material) || false}
+                onChange={() => handleMaterialToggle(material)}
+                className="w-3 h-3 text-primary-500 border-gray-300 rounded focus:ring-primary-400"
+              />
+              <span className="text-xs text-gray-700">{material}</span>
+            </label>
+          ))}
+        </div>
+      </div>
 
       {/* Eco-Friendly Filter */}
       <div className="space-y-3">
@@ -108,6 +152,40 @@ const FilterPanel = ({ className, filters, onFiltersChange, onReset }) => {
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-secondary-400 focus:ring-1 focus:ring-secondary-400 focus:outline-none"
             />
           </div>
+        </div>
+</div>
+
+      {/* Recipient Age Range */}
+      <div className="space-y-3">
+        <h4 className="text-sm font-medium text-gray-700">Recipient Age Range</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Min Age</label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={filters.ageRange?.min || 1}
+              onChange={(e) => handleAgeRangeChange("min", e.target.value)}
+              placeholder="1"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-secondary-400 focus:ring-1 focus:ring-secondary-400 focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Max Age</label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              value={filters.ageRange?.max || 100}
+              onChange={(e) => handleAgeRangeChange("max", e.target.value)}
+              placeholder="100"
+              className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:border-secondary-400 focus:ring-1 focus:ring-secondary-400 focus:outline-none"
+            />
+          </div>
+        </div>
+        <div className="flex justify-between text-xs text-gray-500">
+          <span>Ages {filters.ageRange?.min || 1} - {filters.ageRange?.max || 100}</span>
         </div>
       </div>
 
