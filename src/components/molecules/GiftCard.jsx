@@ -112,7 +112,7 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
                     </Badge>)}
                 </div>}
                 {/* Action Buttons */}
-                {/* Action Buttons */}
+{/* Action Buttons */}
                 <div
                     className={`grid gap-2 pt-2 ${gift.category === "DIY" ? "grid-cols-2" : "grid-cols-2"}`}>
                     <div className="flex gap-2">
@@ -142,16 +142,28 @@ const GiftCard = ({ gift, onSave, onBuy, onViewInstructions, className, ...props
                             <ApperIcon name="Share2" size={16} />
                         </Button>
                     </div>
-                    {gift.category === "DIY" && <Button variant="success" size="sm" onClick={() => onViewInstructions?.(gift)}>
-                        <ApperIcon name="BookOpen" size={16} />Instructions
-                                      </Button>}
+                    <div className="flex gap-2 col-span-2">
+                        <Button
+                            variant="accent"
+                            size="sm"
+                            onClick={() => window.open(`/virtual-wrapping?giftId=${gift.Id}`, '_blank')}
+                            className="flex-1">
+                            <ApperIcon name="Gift" size={16} />
+                            Wrap Gift
+                        </Button>
+                        {gift.category === "DIY" && (
+                            <Button variant="success" size="sm" onClick={() => onViewInstructions?.(gift)} className="flex-1">
+                                <ApperIcon name="BookOpen" size={16} />Instructions
+                            </Button>
+                        )}
+                    </div>
                     <Button
                         variant="primary"
                         size="sm"
                         onClick={() => onBuy?.(gift)}
-                        className={gift.category === "DIY" ? "" : "col-span-2"}>
+                        className="col-span-2">
                         <ApperIcon name="ShoppingCart" size={16} />Buy Now
-                                    </Button>
+                    </Button>
                 </div>
                 {/* Vendor */}
                 <div

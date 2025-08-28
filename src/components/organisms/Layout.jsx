@@ -18,6 +18,7 @@ const navigation = [
     { name: "Price Alerts", href: "/price-alerts", icon: "TrendingDown" },
 { name: "Group Gifts", href: "/group-gifts", icon: "Users2" },
     { name: "Social", href: "/social", icon: "Share2" },
+    { name: "Virtual Wrapping", href: "/virtual-wrapping", icon: "Gift" },
     { name: "Trends", href: "/trends", icon: "TrendingUp" }
   ];
 

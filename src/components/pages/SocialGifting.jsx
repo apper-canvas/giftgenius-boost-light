@@ -31,9 +31,10 @@ const SocialGifting = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [privacyFilter, setPrivacyFilter] = useState('all');
   const [showSocialModal, setShowSocialModal] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+const [showShareModal, setShowShareModal] = useState(false);
   const [selectedWishlist, setSelectedWishlist] = useState(null);
   const [newFriendEmail, setNewFriendEmail] = useState('');
+  const [wrappedGifts, setWrappedGifts] = useState([]);
 
   const preSelectedRecipientId = searchParams.get('recipient');
 
@@ -107,7 +108,7 @@ const SocialGifting = () => {
     }
   };
 
-  const handleShareGift = async (giftId, friendIds) => {
+const handleShareGift = async (giftId, friendIds) => {
     try {
       await socialGiftService.shareGift(giftId, friendIds);
       toast.success('Gift shared successfully!');
@@ -115,6 +116,11 @@ const SocialGifting = () => {
     } catch (err) {
       toast.error('Failed to share gift');
     }
+  };
+
+  const handleWrapGift = (gift) => {
+    window.open(`/virtual-wrapping?giftId=${gift.Id}`, '_blank');
+    toast.info('Opening gift wrapping studio...');
   };
 
   const handleToggleWishlistPrivacy = async (wishlistId, isPublic) => {
@@ -343,10 +349,17 @@ const SocialGifting = () => {
                       )}
                     </div>
 
-                    <div className="flex gap-2">
+<div className="flex gap-2">
                       <Button variant="primary" size="sm" className="flex-1">
                         <ApperIcon name="MessageCircle" size={14} />
                         Message
+                      </Button>
+                      <Button 
+                        variant="accent" 
+                        size="sm"
+                        onClick={() => window.open('/virtual-wrapping', '_blank')}
+                      >
+                        <ApperIcon name="Gift" size={14} />
                       </Button>
                       <Button variant="outline" size="sm">
                         <ApperIcon name="MoreHorizontal" size={14} />
@@ -524,7 +537,7 @@ const SocialGifting = () => {
           {filteredActivities.length > 0 ? (
             <div className="space-y-4">
               {filteredActivities.map((activity, index) => (
-                <motion.div
+<motion.div
                   key={activity.Id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -541,8 +554,8 @@ const SocialGifting = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <p className="font-medium text-gray-900">{activity.friendName}</p>
-                          <Badge variant={activity.type === 'gifted' ? 'success' : activity.type === 'suggested' ? 'accent' : 'outline'} size="sm">
-                            {activity.type}
+                          <Badge variant={activity.type === 'gifted' ? 'success' : activity.type === 'suggested' ? 'accent' : activity.type === 'wrapped' ? 'primary' : 'outline'} size="sm">
+                            {activity.type === 'wrapped' ? 'wrapped gift' : activity.type}
                           </Badge>
                         </div>
                         <p className="text-gray-600 text-sm mb-2">
@@ -550,6 +563,8 @@ const SocialGifting = () => {
                             ? `gifted "${activity.giftTitle}" to ${activity.recipientName}`
                             : activity.type === 'suggested'
                             ? `suggested "${activity.giftTitle}" for ${activity.recipientName}`
+                            : activity.type === 'wrapped'
+                            ? `wrapped "${activity.giftTitle}" with a personal message`
                             : `shared "${activity.giftTitle}"`
                           }
                         </p>
@@ -558,6 +573,12 @@ const SocialGifting = () => {
                           {activity.occasion && <span>• {activity.occasion}</span>}
                           {activity.price && (
                             <span className="font-medium text-green-600">• ${activity.price}</span>
+                          )}
+                          {activity.wrappingStyle && (
+                            <span className="flex items-center space-x-1 text-purple-600">
+                              <ApperIcon name="Gift" size={12} />
+                              <span>{activity.wrappingStyle}</span>
+                            </span>
                           )}
                           {activity.privacy === 'private' && (
                             <span className="flex items-center space-x-1 text-amber-600">
@@ -571,6 +592,16 @@ const SocialGifting = () => {
                         {activity.canView && (
                           <Button variant="outline" size="sm" icon="Eye">
                             View
+                          </Button>
+                        )}
+                        {activity.type !== 'wrapped' && (
+                          <Button 
+                            variant="accent" 
+                            size="sm" 
+                            icon="Gift"
+                            onClick={() => window.open(`/virtual-wrapping?giftId=${activity.giftId}`, '_blank')}
+                          >
+                            Wrap
                           </Button>
                         )}
                         <Button variant="ghost" size="sm" icon="MoreHorizontal" />

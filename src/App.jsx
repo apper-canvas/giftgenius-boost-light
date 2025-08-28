@@ -11,7 +11,7 @@ import GroupGifts from "@/components/pages/GroupGifts";
 import SocialGifting from "@/components/pages/SocialGifting";
 import DIYInstructions from "@/components/pages/DIYInstructions";
 import Trends from "@/components/pages/Trends";
-
+import VirtualWrapping from "@/components/pages/VirtualWrapping";
 function App() {
   return (
     <BrowserRouter>
@@ -25,6 +25,7 @@ function App() {
             <Route path="price-alerts" element={<PriceAlerts />} />
             <Route path="group-gifts" element={<GroupGifts />} />
             <Route path="social" element={<SocialGifting />} />
+            <Route path="virtual-wrapping" element={<VirtualWrapping />} />
 <Route path="diy-instructions/:id" element={<DIYInstructions />} />
             <Route path="trends" element={<Trends />} />
           </Route>
