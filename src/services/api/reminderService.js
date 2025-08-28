@@ -78,6 +78,66 @@ class ReminderService {
     });
   }
 
+async sendBirthdayNotification(recipientId, daysAdvance = 7) {
+    await this.delay(200);
+    
+    const { alertNotificationService } = await import('@/services/api/alertNotificationService');
+    const { recipientService } = await import('@/services/api/recipientService');
+    
+    try {
+      const recipient = await recipientService.getById(recipientId);
+      if (!recipient) return;
+      
+      const notification = {
+        type: 'birthday_reminder',
+        recipient,
+        daysAdvance,
+        timestamp: new Date().toISOString()
+      };
+      
+      await alertNotificationService.processNotification(notification);
+    } catch (error) {
+      console.warn('Failed to send birthday notification:', error);
+    }
+  }
+
+  async getBirthdayReminders(daysAhead = 30) {
+    await this.delay(300);
+    const { recipientService } = await import('@/services/api/recipientService');
+    
+    try {
+      const recipients = await recipientService.getAll();
+      const now = new Date();
+      const future = new Date();
+      future.setDate(now.getDate() + daysAhead);
+      
+      const upcomingBirthdays = recipients.filter(recipient => {
+        if (!recipient.birthday) return false;
+        
+        const birthday = new Date(recipient.birthday);
+        const thisYearBirthday = new Date(now.getFullYear(), birthday.getMonth(), birthday.getDate());
+        
+        if (thisYearBirthday < now) {
+          thisYearBirthday.setFullYear(now.getFullYear() + 1);
+        }
+        
+        return thisYearBirthday >= now && thisYearBirthday <= future;
+      }).map(recipient => ({
+        Id: this.getNextId(),
+        recipientId: recipient.Id,
+        occasionId: null,
+        alertDate: new Date(now.getFullYear(), new Date(recipient.birthday).getMonth(), new Date(recipient.birthday).getDate() - 7).toISOString(),
+        status: "active",
+        type: "birthday"
+      }));
+      
+      return upcomingBirthdays;
+    } catch (error) {
+      console.warn('Failed to get birthday reminders:', error);
+      return [];
+    }
+  }
+
   getNextId() {
     return Math.max(...this.data.map(r => r.Id), 0) + 1;
   }

@@ -295,7 +295,36 @@ const Reminders = () => {
         />
       )}
     </div>
-  );
+);
+
+  // Check for upcoming birthdays and send notifications
+  React.useEffect(() => {
+    const checkBirthdayNotifications = async () => {
+      try {
+        const birthdayRecipients = await recipientService.getUpcomingBirthdays(7);
+        
+        for (const recipient of birthdayRecipients) {
+          const birthday = new Date(recipient.birthday);
+          const now = new Date();
+          const thisYearBirthday = new Date(now.getFullYear(), birthday.getMonth(), birthday.getDate());
+          
+          if (thisYearBirthday < now) {
+            thisYearBirthday.setFullYear(now.getFullYear() + 1);
+          }
+          
+          const daysUntil = Math.ceil((thisYearBirthday - now) / (1000 * 60 * 60 * 24));
+          
+          if ([7, 3, 1, 0].includes(daysUntil)) {
+            await reminderService.sendBirthdayNotification(recipient.Id, daysUntil);
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to check birthday notifications:', error);
+      }
+    };
+
+    checkBirthdayNotifications();
+  }, [reminders]);
 };
 
 export default Reminders;

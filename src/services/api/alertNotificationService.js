@@ -26,13 +26,36 @@ class AlertNotificationService {
     };
 
     await this.processNotification(notification);
-  }
+}
 
   async sendStockAlert(alert, inStock) {
     const notification = {
       type: 'stock_change',
       alert,
       inStock,
+      timestamp: new Date().toISOString()
+    };
+
+    await this.processNotification(notification);
+  }
+
+  async sendBirthdayReminderAlert(recipient, daysUntil) {
+    const notification = {
+      type: 'birthday_reminder',
+      recipient,
+      daysUntil,
+      timestamp: new Date().toISOString()
+    };
+
+    await this.processNotification(notification);
+  }
+
+  async sendWishlistUpdateAlert(wishlist, action, item = null) {
+    const notification = {
+      type: 'wishlist_update',
+      wishlist,
+      action,
+      item,
       timestamp: new Date().toISOString()
     };
 
@@ -77,7 +100,7 @@ class AlertNotificationService {
   }
 
   showToastNotification(notification) {
-    const { type, alert } = notification;
+const { type, alert } = notification;
 
     switch (type) {
       case 'price_drop':
@@ -108,6 +131,52 @@ class AlertNotificationService {
           );
         }
         break;
+
+      case 'birthday_reminder':
+        toast.info(
+          `🎂 ${notification.recipient.name}'s birthday is ${notification.daysUntil === 0 ? 'today' : `in ${notification.daysUntil} days`}!`,
+          {
+            autoClose: 8000,
+            onClick: () => window.location.href = '/recipients'
+          }
+        );
+        break;
+
+      case 'wishlist_update':
+        const actionText = notification.action === 'item_added' ? 'added to' : 'updated';
+        toast.info(
+          `👥 ${notification.wishlist.ownerName} ${actionText} their wishlist${notification.item ? `: ${notification.item.name}` : ''}`,
+          {
+            autoClose: 6000,
+            onClick: () => window.location.href = '/social'
+          }
+        );
+        break;
+
+      case 'friend_activity':
+        let activityMessage = '';
+        switch (notification.activity) {
+          case 'shared_gift':
+            activityMessage = `${notification.friend.name} shared a gift with you`;
+            break;
+          case 'updated_wishlist':
+            activityMessage = `${notification.friend.name} updated their wishlist`;
+            break;
+          case 'joined_group_gift':
+            activityMessage = `${notification.friend.name} joined a group gift`;
+            break;
+          default:
+            activityMessage = `${notification.friend.name} has new activity`;
+        }
+        
+        toast.info(
+          `🤝 ${activityMessage}`,
+          {
+            autoClose: 6000,
+            onClick: () => window.location.href = '/social'
+          }
+        );
+        break;
       
       case 'bulk_update':
         toast.info(
@@ -121,7 +190,7 @@ class AlertNotificationService {
     }
   }
 
-  async sendEmailNotification(notification) {
+async sendEmailNotification(notification) {
     const { type, alert } = notification;
     let subject, body;
 
@@ -134,6 +203,21 @@ class AlertNotificationService {
       case 'stock_change':
         subject = `Stock Alert: ${alert.gift?.title}`;
         body = this.generateStockEmail(notification);
+        break;
+
+      case 'birthday_reminder':
+        subject = `Birthday Reminder: ${notification.recipient.name}`;
+        body = this.generateBirthdayEmail(notification);
+        break;
+
+      case 'wishlist_update':
+        subject = `Wishlist Update: ${notification.wishlist.name}`;
+        body = this.generateWishlistEmail(notification);
+        break;
+
+      case 'friend_activity':
+        subject = `Friend Activity: ${notification.friend.name}`;
+        body = this.generateFriendActivityEmail(notification);
         break;
       
       case 'bulk_update':
@@ -150,7 +234,7 @@ class AlertNotificationService {
   }
 
   async sendPushNotification(notification) {
-    const { type, alert } = notification;
+const { type, alert } = notification;
     let title, body;
 
     switch (type) {
@@ -162,6 +246,22 @@ class AlertNotificationService {
       case 'stock_change':
         title = notification.inStock ? 'Back in Stock! 📦' : 'Out of Stock ⚠️';
         body = `${alert.gift?.title} ${notification.inStock ? 'is now available' : 'is out of stock'}`;
+        break;
+
+      case 'birthday_reminder':
+        title = '🎂 Birthday Reminder!';
+        body = `${notification.recipient.name}'s birthday is ${notification.daysUntil === 0 ? 'today' : `in ${notification.daysUntil} days`}`;
+        break;
+
+      case 'wishlist_update':
+        title = '👥 Wishlist Update';
+        const action = notification.action === 'item_added' ? 'added to' : 'updated';
+        body = `${notification.wishlist.ownerName} ${action} their wishlist`;
+        break;
+
+      case 'friend_activity':
+        title = '🤝 Friend Activity';
+        body = `${notification.friend.name} has new activity to check out`;
         break;
       
       case 'bulk_update':
@@ -181,7 +281,7 @@ class AlertNotificationService {
     });
   }
 
-  generatePriceDropEmail(notification) {
+generatePriceDropEmail(notification) {
     const { alert, oldPrice, newPrice, savings, percentageDrop } = notification;
     
     return `
@@ -206,6 +306,69 @@ class AlertNotificationService {
       <p>For: ${alert.recipient?.name}</p>
       <p>Current Price: $${alert.gift?.price}</p>
       ${inStock ? `<p><a href="${alert.gift?.purchaseUrl}" style="background: #6B46C1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Buy Now</a></p>` : ''}
+    `;
+  }
+
+  generateBirthdayEmail(notification) {
+    const { recipient, daysUntil } = notification;
+    
+    return `
+      <h2>🎂 Birthday Reminder</h2>
+      <p>${recipient.name}'s birthday is ${daysUntil === 0 ? 'today' : `coming up in ${daysUntil} days`}!</p>
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>Recipient Details:</h3>
+        <p><strong>Name:</strong> ${recipient.name}</p>
+        <p><strong>Relationship:</strong> ${recipient.relationship}</p>
+        ${recipient.interests ? `<p><strong>Interests:</strong> ${recipient.interests.slice(0, 3).join(', ')}</p>` : ''}
+      </div>
+      <p><a href="/recipients" style="background: #6B46C1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">Find Perfect Gifts</a></p>
+    `;
+  }
+
+  generateWishlistEmail(notification) {
+    const { wishlist, action, item } = notification;
+    
+    return `
+      <h2>👥 Wishlist Update</h2>
+      <p>${wishlist.ownerName} has ${action === 'item_added' ? 'added an item to' : 'updated'} their wishlist "${wishlist.name}".</p>
+      ${item ? `
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3>New Item:</h3>
+          <p><strong>Name:</strong> ${item.name}</p>
+          ${item.price ? `<p><strong>Price:</strong> $${item.price}</p>` : ''}
+        </div>
+      ` : ''}
+      <p><a href="/social" style="background: #6B46C1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Wishlist</a></p>
+    `;
+  }
+
+  generateFriendActivityEmail(notification) {
+    const { friend, activity, data } = notification;
+    
+    let activityDescription = '';
+    switch (activity) {
+      case 'shared_gift':
+        activityDescription = 'shared a gift recommendation with you';
+        break;
+      case 'updated_wishlist':
+        activityDescription = 'updated their wishlist';
+        break;
+      case 'joined_group_gift':
+        activityDescription = 'joined a group gift';
+        break;
+      default:
+        activityDescription = 'has new activity';
+    }
+    
+    return `
+      <h2>🤝 Friend Activity</h2>
+      <p>${friend.name} ${activityDescription}.</p>
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+        <h3>Friend Details:</h3>
+        <p><strong>Name:</strong> ${friend.name}</p>
+        <p><strong>Email:</strong> ${friend.email}</p>
+      </div>
+      <p><a href="/social" style="background: #6B46C1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px;">View Activity</a></p>
     `;
   }
 

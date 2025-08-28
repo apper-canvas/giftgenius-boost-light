@@ -95,7 +95,7 @@ class SocialGiftService {
     return { ...this.sharedWishlists[index] };
   }
 
-  async addItemToWishlist(wishlistId, item) {
+async addItemToWishlist(wishlistId, item) {
     await this.delay();
     
     const wishlist = this.sharedWishlists.find(w => w.Id === parseInt(wishlistId));
@@ -111,7 +111,54 @@ class SocialGiftService {
     };
 
     wishlist.items.push(newItem);
+    
+    // Send wishlist update notification
+    await this.sendWishlistUpdateNotification(wishlist, 'item_added', newItem);
+    
     return newItem;
+  }
+
+  async sendWishlistUpdateNotification(wishlist, action, item = null) {
+    await this.delay(100);
+    
+    try {
+      const { alertNotificationService } = await import('@/services/api/alertNotificationService');
+      
+      const notification = {
+        type: 'wishlist_update',
+        wishlist,
+        action, // 'item_added', 'item_removed', 'privacy_changed'
+        item,
+        timestamp: new Date().toISOString()
+      };
+      
+      await alertNotificationService.processNotification(notification);
+    } catch (error) {
+      console.warn('Failed to send wishlist notification:', error);
+    }
+  }
+
+  async sendFriendActivityNotification(friendId, activity, data = null) {
+    await this.delay(100);
+    
+    try {
+      const { alertNotificationService } = await import('@/services/api/alertNotificationService');
+      
+      const friend = this.friends.find(f => f.Id === parseInt(friendId));
+      if (!friend) return;
+      
+      const notification = {
+        type: 'friend_activity',
+        friend,
+        activity, // 'shared_gift', 'updated_wishlist', 'joined_group_gift'
+        data,
+        timestamp: new Date().toISOString()
+      };
+      
+      await alertNotificationService.processNotification(notification);
+    } catch (error) {
+      console.warn('Failed to send friend activity notification:', error);
+    }
   }
 
   // Gift Activities

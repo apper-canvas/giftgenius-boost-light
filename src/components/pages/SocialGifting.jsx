@@ -111,6 +111,12 @@ const [showShareModal, setShowShareModal] = useState(false);
 const handleShareGift = async (giftId, friendIds) => {
     try {
       await socialGiftService.shareGift(giftId, friendIds);
+      
+      // Send notifications to friends about the shared gift
+      for (const friendId of friendIds) {
+        await socialGiftService.sendFriendActivityNotification(friendId, 'shared_gift', { giftId });
+      }
+      
       toast.success('Gift shared successfully!');
       loadData();
     } catch (err) {

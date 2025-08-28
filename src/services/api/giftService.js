@@ -1,4 +1,6 @@
 import giftsData from "@/services/mockData/gifts.json";
+import React from "react";
+import Error from "@/components/ui/Error";
 class GiftService {
   constructor() {
     this.data = [...giftsData];
@@ -44,7 +46,8 @@ class GiftService {
       recommendations = recommendations.filter(gift => gift.price <= budget * 1.2); // Allow 20% over budget
     }
     
-    // Apply personalization scoring
+// Apply personalization scoring
+    if (recipientData) {
     recommendations = recommendations.map(gift => {
       let scoreBoost = 0;
       let personalizationReasons = [];

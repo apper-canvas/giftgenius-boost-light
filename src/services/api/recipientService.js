@@ -94,7 +94,7 @@ async create(recipientData) {
     recipient.preferences.lastUpdated = new Date().toISOString();
   }
 
-  async trackInteraction(recipientId, interactionType, giftData = null) {
+async trackInteraction(recipientId, interactionType, giftData = null) {
     await this.delay(100);
     const recipient = this.data.find(r => r.Id === parseInt(recipientId));
     if (!recipient) return;
@@ -110,6 +110,43 @@ async create(recipientData) {
     
     // Keep only last 50 interactions
     recipient.interactionHistory = recipient.interactionHistory.slice(0, 50);
+  }
+
+  async getUpcomingBirthdays(daysAhead = 30) {
+    await this.delay(200);
+    const now = new Date();
+    const future = new Date();
+    future.setDate(now.getDate() + daysAhead);
+    
+    return this.data.filter(recipient => {
+      if (!recipient.birthday) return false;
+      
+      const birthday = new Date(recipient.birthday);
+      const thisYearBirthday = new Date(now.getFullYear(), birthday.getMonth(), birthday.getDate());
+      
+      if (thisYearBirthday < now) {
+        thisYearBirthday.setFullYear(now.getFullYear() + 1);
+      }
+      
+      return thisYearBirthday >= now && thisYearBirthday <= future;
+    });
+  }
+
+  async updateNotificationPreferences(recipientId, preferences) {
+    await this.delay(200);
+    const recipient = this.data.find(r => r.Id === parseInt(recipientId));
+    if (!recipient) throw new Error("Recipient not found");
+    
+    recipient.notificationPreferences = {
+      birthdayReminders: true,
+      daysBeforeBirthday: 7,
+      emailNotifications: true,
+      pushNotifications: true,
+      ...preferences,
+      lastUpdated: new Date().toISOString()
+    };
+    
+    return { ...recipient };
   }
 
   async delete(id) {
