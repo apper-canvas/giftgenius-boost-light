@@ -239,9 +239,9 @@ const handleQuickGift = () => {
                 const daysUntil = differenceInDays(parseISO(occasion.date), new Date());
                 
                 return (
-                  <div key={reminder.Id} className="bg-white rounded-lg p-4 shadow-sm">
+<div key={reminder.Id} className="bg-white rounded-lg p-4 shadow-sm">
                     <div className="flex items-center space-x-3">
-                      <Avatar src={recipient.photoUrl} fallback={recipient.name[0]} size="sm" />
+                      <Avatar src={recipient.photoUrl} fallback={recipient.name?.[0]} size="sm" />
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-900 truncate">
                           {recipient.name}'s {occasion.type}
@@ -290,9 +290,9 @@ const handleQuickGift = () => {
                 <Card className="group" hoverable>
                   <div className="space-y-4">
                     <div className="flex items-center space-x-4">
-                      <Avatar
+<Avatar
                         src={recipient.photoUrl}
-                        fallback={recipient.name[0]}
+                        fallback={recipient.name?.[0]}
                         size="lg"
                       />
                       <div className="flex-1 min-w-0">
