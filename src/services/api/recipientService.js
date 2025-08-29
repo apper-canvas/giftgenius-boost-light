@@ -351,7 +351,3 @@ class RecipientService {
 }
 
 export const recipientService = new RecipientService();
-
-}
-
-export const recipientService = new RecipientService();
