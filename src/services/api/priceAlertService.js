@@ -103,4 +103,3 @@ class PriceAlertService {
 }
 
 export const priceAlertService = new PriceAlertService();
-export const priceAlertService = new PriceAlertService();

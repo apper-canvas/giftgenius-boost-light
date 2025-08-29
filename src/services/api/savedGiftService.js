@@ -222,4 +222,3 @@ class SavedGiftService {
 }
 
 export const savedGiftService = new SavedGiftService();
-export const savedGiftService = new SavedGiftService();

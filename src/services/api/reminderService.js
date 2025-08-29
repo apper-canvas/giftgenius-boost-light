@@ -196,4 +196,3 @@ class ReminderService {
 }
 
 export const reminderService = new ReminderService();
-export const reminderService = new ReminderService();
