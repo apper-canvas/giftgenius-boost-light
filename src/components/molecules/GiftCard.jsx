@@ -25,8 +25,7 @@ React.useEffect(() => {
       }
     };
     trackView();
-  }, [gift.Id]);
-
+}, [gift.Id]);
   const getMatchScoreColor = (score) => {
     if (score >= 90) return "success";
     if (score >= 75) return "accent";
@@ -94,12 +93,12 @@ React.useEffect(() => {
         {/* Gift Image */}
         <div
             className="relative aspect-[4/3] bg-gradient-to-br from-purple-100 to-pink-100 rounded-t-card mb-4">
-            {gift.imageUrl ? <img
-                src={gift.imageUrl}
-                alt={gift.title}
+{(gift.ImageUrl || gift.imageUrl) ? <img
+                src={gift.ImageUrl || gift.imageUrl}
+                alt={gift.Title || gift.title}
                 className="w-full h-full object-cover rounded-t-card" /> : <div className="w-full h-full flex items-center justify-center">
                 <ApperIcon name="Gift" size={48} className="text-purple-300" />
-            </div>})
+            </div>}
                       
                       {/* Trending Badge */}
             {gift.isTrending && <div className="absolute top-3 left-3">
@@ -120,30 +119,30 @@ React.useEffect(() => {
             <div className="space-y-4">
                 {/* Title and Price */}
                 <div>
-                    <h3 className="font-semibold text-gray-900 line-clamp-2 mb-2">
-                        {gift.title}
+<h3 className="font-semibold text-gray-900 line-clamp-2 mb-2">
+                        {gift.Title || gift.title}
                     </h3>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                            <span className="text-2xl font-bold gradient-text">${gift.price}
+                            <span className="text-2xl font-bold gradient-text">${gift.Price || gift.price}
                             </span>
                             <div className="flex items-center space-x-1 text-gray-600">
-                                <ApperIcon name={getDeliveryIcon(gift.deliveryDays)} size={16} />
-                                <span className="text-sm">{gift.deliveryDays}days</span>
+                                <ApperIcon name={getDeliveryIcon(gift.DeliveryDays || gift.deliveryDays)} size={16} />
+                                <span className="text-sm">{gift.DeliveryDays || gift.deliveryDays}days</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 {/* Reasoning */}
-                <div className="bg-purple-50 rounded-lg p-3">
+<div className="bg-purple-50 rounded-lg p-3">
                     <p className="text-sm text-gray-700 line-clamp-2">
-                        {gift.reasoning}
+                        {gift.Reasoning || gift.reasoning}
                     </p>
                 </div>
-                {/* Tags */}
-                {gift.tags && gift.tags.length > 0 && <div className="flex flex-wrap gap-2">
-                    {gift.tags.slice(0, 3).map((tag, index) => <Badge key={index} variant="outline" size="sm">
-                        {tag}
+{/* Tags */}
+                {(gift.Tags || gift.tags) && (gift.Tags || gift.tags).length > 0 && <div className="flex flex-wrap gap-2">
+                    {(gift.Tags ? gift.Tags.split(',') : gift.tags).slice(0, 3).map((tag, index) => <Badge key={index} variant="outline" size="sm">
+                        {tag.trim()}
                     </Badge>)}
                 </div>}
                 {/* Action Buttons */}
@@ -180,9 +179,9 @@ React.useEffect(() => {
                                 await handleAction('share');
                                 if (navigator.share) {
                                     navigator.share({
-                                        title: gift.title,
-                                        text: `Check out this gift idea: ${gift.title} - ${gift.reasoning}`,
-                                        url: gift.purchaseUrl || window.location.href
+title: gift.Title || gift.title,
+                                        text: `Check out this gift idea: ${gift.Title || gift.title} - ${gift.Reasoning || gift.reasoning}`,
+                                        url: gift.PurchaseUrl || gift.purchaseUrl || window.location.href
                                     });
                                 } else {
                                     navigator.clipboard.writeText(`${gift.title} - ${gift.purchaseUrl || window.location.href}`);
@@ -234,8 +233,8 @@ React.useEffect(() => {
                 </div>
                 {/* Vendor */}
                 <div
-                    className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
-                    <span>From {gift.vendor}</span>
+className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
+                    <span>From {gift.Vendor || gift.vendor}</span>
                     <div className="flex items-center space-x-1">
                         <ApperIcon name="Star" size={12} className="text-amber-400 fill-current" />
                         <span>4.8</span>

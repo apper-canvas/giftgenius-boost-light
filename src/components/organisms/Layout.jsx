@@ -90,6 +90,23 @@ const navigation = [
             >
               Connect Social Media
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              icon="LogOut"
+              className="w-full text-xs text-gray-600 border-gray-300"
+              onClick={async () => {
+                try {
+                  const { ApperUI } = window.ApperSDK;
+                  await ApperUI.logout();
+                  window.location.href = '/login';
+                } catch (error) {
+                  console.error("Logout failed:", error);
+                }
+              }}
+            >
+              Logout
+            </Button>
             <div className="text-xs text-center text-gray-500">
               AI-Powered Gift Assistant
             </div>

@@ -1,30 +1,158 @@
-import wrappingTemplatesData from "@/services/mockData/virtualWrapping.json";
-
 class VirtualWrappingService {
   constructor() {
-    this.templates = [...wrappingTemplatesData];
-    this.wrappedGifts = [];
+    this.apperClient = null;
+    this.wrappedGifts = []; // Mock storage for wrapped gifts
+    this.initializeApperClient();
+  }
+
+  initializeApperClient() {
+    if (typeof window !== 'undefined' && window.ApperSDK) {
+      const { ApperClient } = window.ApperSDK;
+      this.apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+    }
   }
 
   async getAll() {
-    await this.delay(300);
-    return [...this.templates];
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "PrimaryColor"}},
+          {"field": {"Name": "SecondaryColor"}},
+          {"field": {"Name": "Gradient"}},
+          {"field": {"Name": "Pattern"}},
+          {"field": {"Name": "ThemeStyle"}},
+          {"field": {"Name": "IsAnimated"}},
+          {"field": {"Name": "PreviewImage"}}
+        ]
+      };
+      
+      const response = await this.apperClient.fetchRecords('virtual_wrapping_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      return response.data.map(template => ({
+        ...template,
+        name: template.Name,
+        description: template.Description,
+        category: template.Category,
+        primaryColor: template.PrimaryColor,
+        secondaryColor: template.SecondaryColor,
+        gradient: template.Gradient,
+        pattern: template.Pattern,
+        themeStyle: template.ThemeStyle,
+        isAnimated: template.IsAnimated || false,
+        previewImage: template.PreviewImage
+      }));
+    } catch (error) {
+      console.error("Error fetching virtual wrapping templates:", error?.response?.data?.message || error);
+      return [];
+    }
   }
 
   async getById(id) {
-    await this.delay(150);
-    const template = this.templates.find(t => t.Id === parseInt(id));
-    return template ? { ...template } : null;
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "PrimaryColor"}},
+          {"field": {"Name": "SecondaryColor"}},
+          {"field": {"Name": "Gradient"}},
+          {"field": {"Name": "Pattern"}},
+          {"field": {"Name": "ThemeStyle"}},
+          {"field": {"Name": "IsAnimated"}},
+          {"field": {"Name": "PreviewImage"}}
+        ]
+      };
+      
+      const response = await this.apperClient.getRecordById('virtual_wrapping_c', parseInt(id), params);
+      
+      if (!response?.data) {
+        return null;
+      }
+      
+      const template = response.data;
+      return {
+        ...template,
+        name: template.Name,
+        description: template.Description,
+        category: template.Category,
+        primaryColor: template.PrimaryColor,
+        secondaryColor: template.SecondaryColor,
+        gradient: template.Gradient,
+        pattern: template.Pattern,
+        themeStyle: template.ThemeStyle,
+        isAnimated: template.IsAnimated || false,
+        previewImage: template.PreviewImage
+      };
+    } catch (error) {
+      console.error(`Error fetching virtual wrapping template ${id}:`, error?.response?.data?.message || error);
+      return null;
+    }
   }
 
   async getByCategory(category) {
-    await this.delay(200);
-    return this.templates.filter(template => template.category === category);
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "PrimaryColor"}},
+          {"field": {"Name": "SecondaryColor"}},
+          {"field": {"Name": "Gradient"}},
+          {"field": {"Name": "Pattern"}},
+          {"field": {"Name": "ThemeStyle"}},
+          {"field": {"Name": "IsAnimated"}},
+          {"field": {"Name": "PreviewImage"}}
+        ],
+        where: [
+          {"FieldName": "Category", "Operator": "EqualTo", "Values": [category]}
+        ]
+      };
+      
+      const response = await this.apperClient.fetchRecords('virtual_wrapping_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      return response.data.map(template => ({
+        ...template,
+        name: template.Name,
+        description: template.Description,
+        category: template.Category,
+        primaryColor: template.PrimaryColor,
+        secondaryColor: template.SecondaryColor,
+        gradient: template.Gradient,
+        pattern: template.Pattern,
+        themeStyle: template.ThemeStyle,
+        isAnimated: template.IsAnimated || false,
+        previewImage: template.PreviewImage
+      }));
+    } catch (error) {
+      console.error(`Error fetching virtual wrapping templates for category ${category}:`, error?.response?.data?.message || error);
+      return [];
+    }
   }
 
+  // Mock wrapped gifts functionality (would need separate wrapped_gifts table)
   async create(wrappingData) {
-    await this.delay(400);
-    
     const newWrappedGift = {
       Id: this.getNextWrappedGiftId(),
       ...wrappingData,
@@ -38,75 +166,35 @@ class VirtualWrappingService {
   }
 
   async getWrappedGifts() {
-    await this.delay(200);
     return [...this.wrappedGifts];
   }
 
   async getWrappedGiftById(id) {
-    await this.delay(150);
     const wrappedGift = this.wrappedGifts.find(wg => wg.Id === parseInt(id));
     return wrappedGift ? { ...wrappedGift } : null;
   }
 
-  async shareWrappedGift(id, shareData = {}) {
-    await this.delay(300);
-    const index = this.wrappedGifts.findIndex(wg => wg.Id === parseInt(id));
-    if (index === -1) throw new Error("Wrapped gift not found");
-    
-    this.wrappedGifts[index] = {
-      ...this.wrappedGifts[index],
-      isShared: true,
-      sharedAt: new Date().toISOString(),
-      shareData: shareData,
-      viewCount: this.wrappedGifts[index].viewCount + 1
-    };
-    
-    return { ...this.wrappedGifts[index] };
-  }
-
-  async updateWrappedGift(id, updateData) {
-    await this.delay(300);
-    const index = this.wrappedGifts.findIndex(wg => wg.Id === parseInt(id));
-    if (index === -1) throw new Error("Wrapped gift not found");
-    
-    this.wrappedGifts[index] = { 
-      ...this.wrappedGifts[index], 
-      ...updateData, 
-      Id: parseInt(id),
-      updatedAt: new Date().toISOString()
-    };
-    
-    return { ...this.wrappedGifts[index] };
-  }
-
-  async delete(id) {
-    await this.delay(250);
-    const index = this.wrappedGifts.findIndex(wg => wg.Id === parseInt(id));
-    if (index === -1) throw new Error("Wrapped gift not found");
-    
-    const deleted = this.wrappedGifts.splice(index, 1)[0];
-    return { ...deleted };
-  }
-
-  // Get popular wrapping templates
   async getPopularTemplates(limit = 6) {
-    await this.delay(200);
-    
-    // Simulate popularity based on usage
-    const templatesWithPopularity = this.templates.map(template => ({
-      ...template,
-      usageCount: Math.floor(Math.random() * 100) + 10,
-      rating: (Math.random() * 2 + 3).toFixed(1) // 3.0 - 5.0 rating
-    }));
-    
-    return templatesWithPopularity
-      .sort((a, b) => b.usageCount - a.usageCount)
-      .slice(0, limit);
+    try {
+      const templates = await this.getAll();
+      
+      // Simulate popularity based on usage
+      const templatesWithPopularity = templates.map(template => ({
+        ...template,
+        usageCount: Math.floor(Math.random() * 100) + 10,
+        rating: (Math.random() * 2 + 3).toFixed(1) // 3.0 - 5.0 rating
+      }));
+      
+      return templatesWithPopularity
+        .sort((a, b) => b.usageCount - a.usageCount)
+        .slice(0, limit);
+    } catch (error) {
+      console.error("Error getting popular templates:", error?.response?.data?.message || error);
+      return [];
+    }
   }
 
-  // Get seasonal templates
   async getSeasonalTemplates() {
-    await this.delay(200);
     const currentMonth = new Date().getMonth() + 1; // 1-12
     
     let seasonalCategory = 'Classic';
@@ -114,17 +202,11 @@ class VirtualWrappingService {
     else if (currentMonth >= 2 && currentMonth <= 4) seasonalCategory = 'Seasonal';
     else if (currentMonth >= 6 && currentMonth <= 8) seasonalCategory = 'Birthday';
     
-    return this.templates.filter(template => 
-      template.category === seasonalCategory || template.seasonal === true
-    );
+    return this.getByCategory(seasonalCategory);
   }
 
   getNextWrappedGiftId() {
     return Math.max(...this.wrappedGifts.map(wg => wg.Id), 0) + 1;
-  }
-
-  async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 }
 

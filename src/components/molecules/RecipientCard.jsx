@@ -46,18 +46,18 @@ const RecipientCard = ({ recipient, onFindGifts, className, ...props }) => {
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
               <Avatar
-                src={recipient.photoUrl}
-                alt={recipient.name}
-                fallback={recipient.name?.[0]}
-                size="lg"
+src={recipient.PhotoUrl || recipient.photoUrl}
+                alt={recipient.Name || recipient.name}
+                fallback={(recipient.Name || recipient.name)?.[0]}
               />
-              <div>
-                <h3 className="font-semibold text-gray-900">{recipient.name}</h3>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between">
+                <h3 className="font-semibold text-gray-900">{recipient.Name || recipient.name}</h3>
                 <div className="flex items-center space-x-2 mt-1">
-                  <ApperIcon name={getRelationshipIcon(recipient.relationship)} size={14} className="text-gray-500" />
-                  <span className="text-sm text-gray-600">{recipient.relationship}</span>
+                  <ApperIcon name={getRelationshipIcon(recipient.Relationship || recipient.relationship)} size={14} className="text-gray-500" />
+                  <span className="text-sm text-gray-600">{recipient.Relationship || recipient.relationship}</span>
                   <span className="text-gray-400">•</span>
-                  <span className="text-sm text-gray-600">{recipient.age} years old</span>
                 </div>
               </div>
             </div>
@@ -98,11 +98,11 @@ const RecipientCard = ({ recipient, onFindGifts, className, ...props }) => {
           )}
 
           {/* Interests */}
-          {recipient.interests && recipient.interests.length > 0 && (
+{(recipient.interests || recipient.Interests) && (recipient.interests || recipient.Interests).length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gray-700">Interests</h4>
               <div className="flex flex-wrap gap-2">
-                {recipient.interests.slice(0, 4).map((interest, index) => (
+                {(recipient.interests || recipient.Interests).slice(0, 4).map((interest, index) => (
                   <Badge key={index} variant="outline" size="sm">
                     {interest}
                   </Badge>
@@ -117,10 +117,10 @@ const RecipientCard = ({ recipient, onFindGifts, className, ...props }) => {
           )}
 
           {/* Location */}
-          {recipient.location && (
+{(recipient.Location || recipient.location) && (
             <div className="flex items-center space-x-2 text-sm text-gray-600">
               <ApperIcon name="MapPin" size={14} />
-              <span>{recipient.location}</span>
+              <span>{recipient.Location || recipient.location}</span>
             </div>
           )}
 

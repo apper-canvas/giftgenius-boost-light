@@ -1,129 +1,225 @@
-import savedGiftsData from "@/services/mockData/savedGifts.json";
-
 class SavedGiftService {
   constructor() {
-    this.data = [...savedGiftsData];
+    this.apperClient = null;
+    this.initializeApperClient();
+  }
+
+  initializeApperClient() {
+    if (typeof window !== 'undefined' && window.ApperSDK) {
+      const { ApperClient } = window.ApperSDK;
+      this.apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+    }
   }
 
   async getAll() {
-    await this.delay(250);
-    return [...this.data].sort((a, b) => new Date(b.savedDate) - new Date(a.savedDate));
-  }
-
-  async getById(id) {
-    await this.delay(150);
-    const savedGift = this.data.find(sg => sg.Id === parseInt(id));
-    return savedGift ? { ...savedGift } : null;
-  }
-
-  async getByRecipient(recipientId) {
-    await this.delay(200);
-    return this.data
-      .filter(savedGift => savedGift.recipientId === parseInt(recipientId))
-      .sort((a, b) => new Date(b.savedDate) - new Date(a.savedDate));
-  }
-
-  async getByGift(giftId) {
-    await this.delay(200);
-    return this.data.filter(savedGift => savedGift.giftId === parseInt(giftId));
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "GiftId"}},
+          {"field": {"Name": "RecipientId"}},
+          {"field": {"Name": "SavedDate"}},
+          {"field": {"Name": "PriceAlert"}},
+          {"field": {"Name": "Notes"}},
+          {"field": {"Name": "UserId"}}
+        ],
+        orderBy: [{"fieldName": "SavedDate", "sorttype": "DESC"}]
+      };
+      
+      const response = await this.apperClient.fetchRecords('saved_gift_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      return response.data.map(savedGift => ({
+        ...savedGift,
+        giftId: savedGift.GiftId,
+        recipientId: savedGift.RecipientId,
+        savedDate: savedGift.SavedDate,
+        priceAlert: savedGift.PriceAlert || false,
+        notes: savedGift.Notes || ""
+      }));
+    } catch (error) {
+      console.error("Error fetching saved gifts:", error?.response?.data?.message || error);
+      return [];
+    }
   }
 
   async create(savedGiftData) {
-    await this.delay(300);
-    
-    // Check if gift is already saved for this recipient
-    const existing = this.data.find(sg => 
-      sg.giftId === savedGiftData.giftId && sg.recipientId === savedGiftData.recipientId
-    );
-    
-    if (existing) {
-      throw new Error("Gift is already saved for this recipient");
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        records: [{
+          GiftId: parseInt(savedGiftData.giftId),
+          RecipientId: parseInt(savedGiftData.recipientId),
+          SavedDate: new Date().toISOString(),
+          PriceAlert: savedGiftData.priceAlert || false,
+          Notes: savedGiftData.notes || "",
+          UserId: savedGiftData.userId || 1
+        }]
+      };
+      
+      const response = await this.apperClient.createRecord('saved_gift_c', params);
+      
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+      
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        if (successful[0]?.data) {
+          const created = successful[0].data;
+          return {
+            ...created,
+            giftId: created.GiftId,
+            recipientId: created.RecipientId,
+            savedDate: created.SavedDate,
+            priceAlert: created.PriceAlert || false,
+            notes: created.Notes || ""
+          };
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error creating saved gift:", error?.response?.data?.message || error);
+      throw error;
     }
-    
-    const newSavedGift = {
-      Id: this.getNextId(),
-      ...savedGiftData,
-      savedDate: new Date().toISOString(),
-      priceAlert: savedGiftData.priceAlert || false,
-      notes: savedGiftData.notes || ""
-    };
-    
-    this.data.push(newSavedGift);
-    return { ...newSavedGift };
   }
 
   async update(id, savedGiftData) {
-    await this.delay(250);
-    const index = this.data.findIndex(sg => sg.Id === parseInt(id));
-    if (index === -1) throw new Error("Saved gift not found");
-    
-    this.data[index] = { ...this.data[index], ...savedGiftData, Id: parseInt(id) };
-    return { ...this.data[index] };
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const updateData = {
+        Id: parseInt(id)
+      };
+      
+      if (savedGiftData.priceAlert !== undefined) {
+        updateData.PriceAlert = savedGiftData.priceAlert;
+      }
+      if (savedGiftData.notes !== undefined) {
+        updateData.Notes = savedGiftData.notes;
+      }
+      
+      const params = {
+        records: [updateData]
+      };
+      
+      const response = await this.apperClient.updateRecord('saved_gift_c', params);
+      
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+      
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        if (successful[0]?.data) {
+          const updated = successful[0].data;
+          return {
+            ...updated,
+            giftId: updated.GiftId,
+            recipientId: updated.RecipientId,
+            savedDate: updated.SavedDate,
+            priceAlert: updated.PriceAlert || false,
+            notes: updated.Notes || ""
+          };
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error updating saved gift:", error?.response?.data?.message || error);
+      throw error;
+    }
   }
 
   async delete(id) {
-    await this.delay(200);
-    const index = this.data.findIndex(sg => sg.Id === parseInt(id));
-    if (index === -1) throw new Error("Saved gift not found");
-    
-    const deleted = this.data.splice(index, 1)[0];
-    return { ...deleted };
-  }
-
-  async togglePriceAlert(id) {
-    await this.delay(200);
-    const savedGift = this.data.find(sg => sg.Id === parseInt(id));
-    if (!savedGift) throw new Error("Saved gift not found");
-    
-    return this.update(id, { priceAlert: !savedGift.priceAlert });
-  }
-
-  async addNote(id, note) {
-    await this.delay(200);
-    return this.update(id, { notes: note });
-  }
-
-async getPriceAlerts() {
-    await this.delay(200);
-    return this.data.filter(savedGift => savedGift.priceAlert);
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const response = await this.apperClient.deleteRecord('saved_gift_c', {
+        RecordIds: [parseInt(id)]
+      });
+      
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+      
+      return response.results?.[0]?.success || false;
+    } catch (error) {
+      console.error("Error deleting saved gift:", error?.response?.data?.message || error);
+      throw error;
+    }
   }
 
   async createPriceAlert(savedGiftId, alertConfig) {
-    await this.delay(300);
-    const savedGift = this.data.find(sg => sg.Id === parseInt(savedGiftId));
-    if (!savedGift) throw new Error("Saved gift not found");
+    try {
+      const savedGift = await this.getById(savedGiftId);
+      if (!savedGift) throw new Error("Saved gift not found");
 
-    // Import priceAlertService dynamically to avoid circular dependency
-    const { priceAlertService } = await import('./priceAlertService.js');
-    
-    const alertData = {
-      giftId: savedGift.giftId,
-      recipientId: savedGift.recipientId,
-      ...alertConfig,
-      originalPrice: savedGift.gift?.price || 0
-    };
+      // Import priceAlertService dynamically to avoid circular dependency
+      const { priceAlertService } = await import('./priceAlertService.js');
+      
+      const alertData = {
+        giftId: savedGift.giftId,
+        recipientId: savedGift.recipientId,
+        ...alertConfig,
+        originalPrice: savedGift.gift?.Price || 0
+      };
 
-    return await priceAlertService.create(alertData);
+      return await priceAlertService.create(alertData);
+    } catch (error) {
+      console.error("Error creating price alert:", error?.response?.data?.message || error);
+      throw error;
+    }
   }
 
-  async updatePriceAlert(savedGiftId, alertConfig) {
-    await this.delay(250);
-    // Implementation would update existing alert for this saved gift
-    return alertConfig;
-  }
-
-  async removePriceAlert(savedGiftId) {
-    await this.delay(200);
-    const savedGift = await this.update(savedGiftId, { priceAlert: false });
-    return savedGift;
-  }
-  getNextId() {
-    return Math.max(...this.data.map(sg => sg.Id), 0) + 1;
-  }
-
-  async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  async getById(id) {
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "GiftId"}},
+          {"field": {"Name": "RecipientId"}},
+          {"field": {"Name": "SavedDate"}},
+          {"field": {"Name": "PriceAlert"}},
+          {"field": {"Name": "Notes"}},
+          {"field": {"Name": "UserId"}}
+        ]
+      };
+      
+      const response = await this.apperClient.getRecordById('saved_gift_c', parseInt(id), params);
+      
+      if (!response?.data) {
+        return null;
+      }
+      
+      const savedGift = response.data;
+      return {
+        ...savedGift,
+        giftId: savedGift.GiftId,
+        recipientId: savedGift.RecipientId,
+        savedDate: savedGift.SavedDate,
+        priceAlert: savedGift.PriceAlert || false,
+        notes: savedGift.Notes || ""
+      };
+    } catch (error) {
+      console.error(`Error fetching saved gift ${id}:`, error?.response?.data?.message || error);
+      return null;
+    }
   }
 }
 
+export const savedGiftService = new SavedGiftService();
 export const savedGiftService = new SavedGiftService();

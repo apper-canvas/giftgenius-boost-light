@@ -1,62 +1,168 @@
-import giftsData from "@/services/mockData/gifts.json";
-import React from "react";
-import Error from "@/components/ui/Error";
 class GiftService {
   constructor() {
-    this.data = [...giftsData];
+    this.apperClient = null;
+    this.userPreferences = {
+      categories: {},
+      priceRanges: {},
+      tags: {},
+      lastUpdated: new Date().toISOString()
+    };
+    this.initializeApperClient();
+  }
+
+  initializeApperClient() {
+    if (typeof window !== 'undefined' && window.ApperSDK) {
+      const { ApperClient } = window.ApperSDK;
+      this.apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+    }
   }
 
   async getAll() {
-    await this.delay(200);
-    return [...this.data];
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Title"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "Price"}},
+          {"field": {"Name": "ImageUrl"}},
+          {"field": {"Name": "Tags"}},
+          {"field": {"Name": "Reasoning"}},
+          {"field": {"Name": "MatchScore"}},
+          {"field": {"Name": "DeliveryDays"}},
+          {"field": {"Name": "Vendor"}},
+          {"field": {"Name": "PurchaseUrl"}},
+          {"field": {"Name": "IsTrending"}},
+          {"field": {"Name": "IsPersonalized"}}
+        ]
+      };
+      
+      const response = await this.apperClient.fetchRecords('gift_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching gifts:", error?.response?.data?.message || error);
+      return [];
+    }
   }
 
   async getById(id) {
-    await this.delay(150);
-    const gift = this.data.find(g => g.Id === parseInt(id));
-    return gift ? { ...gift } : null;
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Title"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "Price"}},
+          {"field": {"Name": "ImageUrl"}},
+          {"field": {"Name": "Tags"}},
+          {"field": {"Name": "Reasoning"}},
+          {"field": {"Name": "MatchScore"}},
+          {"field": {"Name": "DeliveryDays"}},
+          {"field": {"Name": "Vendor"}},
+          {"field": {"Name": "PurchaseUrl"}},
+          {"field": {"Name": "IsTrending"}},
+          {"field": {"Name": "IsPersonalized"}}
+        ]
+      };
+      
+      const response = await this.apperClient.getRecordById('gift_c', parseInt(id), params);
+      
+      if (!response?.data) {
+        return null;
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching gift ${id}:`, error?.response?.data?.message || error);
+      return null;
+    }
   }
 
-// User preference tracking
-  userPreferences = {
-    categories: {},
-    priceRanges: {},
-    tags: {},
-    lastUpdated: new Date().toISOString()
-  };
-
   async getRecommendations({ recipientId, occasionId, budget, interests, includePersonalization = true }) {
-    await this.delay(800); // Simulate AI processing time
-    
-    let recommendations = [...this.data];
-    
-    // Get recipient data for personalization
-    let recipientData = null;
-    if (recipientId && includePersonalization) {
-      try {
-        const { recipientService } = await import('@/services/api/recipientService');
-        recipientData = await recipientService.getById(recipientId);
-      } catch (error) {
-        console.warn('Could not load recipient data for personalization');
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      let whereConditions = [];
+      
+      // Filter by budget if provided
+      if (budget) {
+        whereConditions.push({
+          "FieldName": "Price",
+          "Operator": "LessThanOrEqualTo",
+          "Values": [budget * 1.2] // Allow 20% over budget
+        });
       }
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Title"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "Price"}},
+          {"field": {"Name": "ImageUrl"}},
+          {"field": {"Name": "Tags"}},
+          {"field": {"Name": "Reasoning"}},
+          {"field": {"Name": "MatchScore"}},
+          {"field": {"Name": "DeliveryDays"}},
+          {"field": {"Name": "Vendor"}},
+          {"field": {"Name": "PurchaseUrl"}},
+          {"field": {"Name": "IsTrending"}},
+          {"field": {"Name": "IsPersonalized"}}
+        ],
+        where: whereConditions,
+        orderBy: [{"fieldName": "MatchScore", "sorttype": "DESC"}],
+        pagingInfo: {"limit": 15, "offset": 0}
+      };
+      
+      const response = await this.apperClient.fetchRecords('gift_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      // Apply personalization scoring if requested
+      if (includePersonalization && recipientId) {
+        try {
+          const { recipientService } = await import('@/services/api/recipientService');
+          const recipientData = await recipientService.getById(recipientId);
+          
+          if (recipientData) {
+            return this.applyPersonalizationScoring(response.data, recipientData, interests);
+          }
+        } catch (error) {
+          console.warn('Could not load recipient data for personalization:', error);
+        }
+      }
+      
+      return response.data;
+    } catch (error) {
+      console.error("Error getting recommendations:", error?.response?.data?.message || error);
+      return [];
     }
-    
-    // Filter by budget if provided
-    if (budget) {
-      recommendations = recommendations.filter(gift => gift.price <= budget * 1.2); // Allow 20% over budget
-    }
-    
-// Apply personalization scoring
-    if (recipientData) {
-    recommendations = recommendations.map(gift => {
+  }
+
+  applyPersonalizationScoring(gifts, recipientData, interests) {
+    return gifts.map(gift => {
       let scoreBoost = 0;
       let personalizationReasons = [];
       
       // Base interest matching
       if (interests && interests.length > 0) {
-        const giftTags = gift.tags || [];
-        const giftTitle = gift.title.toLowerCase();
-        const giftReasoning = gift.reasoning.toLowerCase();
+        const giftTags = gift.Tags ? gift.Tags.split(',') : [];
+        const giftTitle = gift.Title ? gift.Title.toLowerCase() : '';
+        const giftReasoning = gift.Reasoning ? gift.Reasoning.toLowerCase() : '';
         
         interests.forEach(interest => {
           const interestLower = interest.toLowerCase();
@@ -70,253 +176,82 @@ class GiftService {
       }
       
       // Recipient-specific personalization
-      if (recipientData && includePersonalization) {
-        // Gift history analysis - avoid duplicates and find patterns
-        const giftHistory = recipientData.giftHistory || [];
-        const purchasedCategories = giftHistory.map(g => g.category);
-        const purchasedTags = giftHistory.flatMap(g => g.tags || []);
-        
-        // Avoid exact duplicates
-        const isDuplicate = giftHistory.some(g => g.title === gift.title);
+      if (recipientData.GiftHistory) {
+        const giftHistory = recipientData.GiftHistory.split(',').filter(Boolean);
+        const isDuplicate = giftHistory.some(g => g === gift.Title);
         if (isDuplicate) {
           scoreBoost -= 30;
           personalizationReasons.push('Similar gift purchased before');
         }
-        
-        // Boost based on successful category patterns
-        if (purchasedCategories.includes(gift.category) && purchasedCategories.length > 0) {
-          scoreBoost += 10;
-          personalizationReasons.push(`Popular category for ${recipientData.name}`);
-        }
-        
-        // Boost based on tag patterns
-        const commonTags = (gift.tags || []).filter(tag => 
-          purchasedTags.some(pTag => pTag.toLowerCase().includes(tag.toLowerCase()))
-        );
-        if (commonTags.length > 0) {
-          scoreBoost += commonTags.length * 8;
-          personalizationReasons.push(`Matches previous preferences`);
-        }
-        
-        // Price range preference
-        if (recipientData.preferences?.priceRange) {
-          const priceRange = recipientData.preferences.priceRange;
-          if (gift.price >= priceRange.min && gift.price <= priceRange.max) {
-            scoreBoost += 12;
-            personalizationReasons.push('Within preferred price range');
-          }
-        }
-        
-        // Interaction history analysis
-        const interactions = recipientData.interactionHistory || [];
-        const viewedCategories = interactions
-          .filter(i => i.type === 'view' && i.category)
-          .map(i => i.category);
-        
-        if (viewedCategories.includes(gift.category)) {
-          scoreBoost += 8;
-          personalizationReasons.push('Based on browsing history');
-        }
       }
-      
-      // Global user preference learning
-      if (this.userPreferences.categories[gift.category]) {
-        const categoryScore = this.userPreferences.categories[gift.category];
-        scoreBoost += Math.min(categoryScore * 2, 15);
-        personalizationReasons.push('Trending in your preferences');
-      }
-      
-      // Tag preference scoring
-      (gift.tags || []).forEach(tag => {
-        if (this.userPreferences.tags[tag]) {
-          scoreBoost += Math.min(this.userPreferences.tags[tag] * 1.5, 10);
-        }
-      });
       
       return {
         ...gift,
-        matchScore: Math.min(99, Math.max(1, gift.matchScore + scoreBoost)),
-        personalizationScore: scoreBoost,
-        personalizationReasons,
-        isPersonalized: scoreBoost > 0
+        MatchScore: Math.min(99, Math.max(1, (gift.MatchScore || 75) + scoreBoost)),
+        PersonalizationScore: scoreBoost,
+        PersonalizationReasons: personalizationReasons,
+        IsPersonalized: scoreBoost > 0
       };
-    });
-    
-    // Sort by match score and return top recommendations
-    return recommendations
-      .sort((a, b) => b.matchScore - a.matchScore)
-      .slice(0, 15); // Return top 15 recommendations
-  }
-}
-
-  // Track user interactions for learning
-  async trackUserInteraction(interactionType, giftData) {
-    await this.delay(100);
-    
-    // Update category preferences
-    if (giftData.category) {
-      this.userPreferences.categories[giftData.category] = 
-        (this.userPreferences.categories[giftData.category] || 0) + this.getInteractionWeight(interactionType);
-    }
-    
-    // Update tag preferences
-    (giftData.tags || []).forEach(tag => {
-      this.userPreferences.tags[tag] = 
-        (this.userPreferences.tags[tag] || 0) + this.getInteractionWeight(interactionType) * 0.5;
-    });
-    
-    // Update price range preferences
-    if (giftData.price) {
-      const priceRange = Math.floor(giftData.price / 50) * 50; // Round to nearest 50
-      this.userPreferences.priceRanges[priceRange] = 
-        (this.userPreferences.priceRanges[priceRange] || 0) + this.getInteractionWeight(interactionType);
-    }
-    
-    this.userPreferences.lastUpdated = new Date().toISOString();
-this.userPreferences.lastUpdated = new Date().toISOString();
+    }).sort((a, b) => b.MatchScore - a.MatchScore);
   }
 
-  getInteractionWeight(interactionType) {
-    const weights = {
-      'view': 1,
-      'share': 2,
-      'purchase': 5,
-      'purchase_attempt': 4,
-      'purchase_redirect': 4,
-      'store_view': 2,
-      'click': 1
-    };
-    return weights[interactionType] || 1;
-  }
-
-  // Get personalized recommendations for home page
-  async getPersonalizedSuggestions(limit = 6) {
-    await this.delay(500);
-    
-    let suggestions = [...this.data];
-    
-    // Score based on user preferences
-    suggestions = suggestions.map(gift => {
-      let score = gift.matchScore || 75;
-      
-      // Boost based on category preferences
-      if (this.userPreferences.categories[gift.category]) {
-        score += this.userPreferences.categories[gift.category] * 2;
-      }
-      
-      // Boost based on tag preferences
-      (gift.tags || []).forEach(tag => {
-        if (this.userPreferences.tags[tag]) {
-          score += this.userPreferences.tags[tag];
-        }
-      });
-      
-      return {
-        ...gift,
-        personalizedScore: score,
-        isPersonalized: true,
-        personalizationReason: this.getPersonalizationReason(gift)
-      };
-    });
-    
-    return suggestions
-      .sort((a, b) => b.personalizedScore - a.personalizedScore)
-      .slice(0, limit);
-  }
-
-  getPersonalizationReason(gift) {
-    const reasons = [];
-    
-    if (this.userPreferences.categories[gift.category]) {
-      reasons.push(`You often explore ${gift.category.toLowerCase()} gifts`);
-    }
-    
-    const popularTags = (gift.tags || []).filter(tag => this.userPreferences.tags[tag]);
-    if (popularTags.length > 0) {
-      reasons.push(`Matches your interest in ${popularTags[0].toLowerCase()}`);
-    }
-    
-    if (reasons.length === 0) {
-      reasons.push('Trending and highly rated');
-    }
-    
-    return reasons[0];
-  }
-
-  // Get trending gifts with filters
   async getTrendingGifts({ occasion = 'all', demographic = 'all', sortBy = 'trending' } = {}) {
-    await this.delay(800);
-    
-    let gifts = [...this.data];
-    
-    // Add trending data to gifts
-    gifts = gifts.map(gift => ({
-      ...gift,
-      trendScore: Math.floor(Math.random() * 100) + 1,
-      growthPercentage: Math.floor(Math.random() * 150) - 25, // -25 to +125
-      popularityRank: Math.floor(Math.random() * 100) + 1,
-      weeklyViews: Math.floor(Math.random() * 10000) + 500,
-      isTrending: Math.random() > 0.4 // 60% chance of trending
-    }));
-    
-    // Filter by occasion
-    if (occasion !== 'all') {
-      gifts = gifts.filter(gift => 
-        gift.tags?.some(tag => tag.toLowerCase().includes(occasion.toLowerCase())) ||
-        gift.title.toLowerCase().includes(occasion.toLowerCase())
-      );
-    }
-    
-    // Filter by demographic
-    if (demographic !== 'all') {
-      const demographicKeywords = {
-        'teen': ['teen', 'young', 'student', 'school'],
-        'young-adult': ['adult', 'professional', 'career', 'modern'],
-        'adult': ['mature', 'sophisticated', 'premium', 'luxury'],
-        'senior': ['classic', 'traditional', 'comfort', 'elegant'],
-        'family': ['family', 'kids', 'children', 'home']
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      let whereConditions = [];
+      
+      // Filter by occasion
+      if (occasion !== 'all') {
+        whereConditions.push({
+          "FieldName": "Tags",
+          "Operator": "Contains",
+          "Values": [occasion]
+        });
+      }
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "Title"}},
+          {"field": {"Name": "Description"}},
+          {"field": {"Name": "Category"}},
+          {"field": {"Name": "Price"}},
+          {"field": {"Name": "ImageUrl"}},
+          {"field": {"Name": "Tags"}},
+          {"field": {"Name": "Reasoning"}},
+          {"field": {"Name": "MatchScore"}},
+          {"field": {"Name": "DeliveryDays"}},
+          {"field": {"Name": "Vendor"}},
+          {"field": {"Name": "PurchaseUrl"}},
+          {"field": {"Name": "IsTrending"}}
+        ],
+        where: whereConditions,
+        orderBy: [{"fieldName": "IsTrending", "sorttype": "DESC"}],
+        pagingInfo: {"limit": 20, "offset": 0}
       };
       
-      const keywords = demographicKeywords[demographic] || [];
-      if (keywords.length > 0) {
-        gifts = gifts.filter(gift =>
-          keywords.some(keyword =>
-            gift.title.toLowerCase().includes(keyword) ||
-            gift.reasoning.toLowerCase().includes(keyword) ||
-            gift.tags?.some(tag => tag.toLowerCase().includes(keyword))
-          )
-        );
+      const response = await this.apperClient.fetchRecords('gift_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
       }
+      
+      // Add trending metadata
+      return response.data.map(gift => ({
+        ...gift,
+        trendScore: Math.floor(Math.random() * 100) + 1,
+        growthPercentage: Math.floor(Math.random() * 150) - 25,
+        popularityRank: Math.floor(Math.random() * 100) + 1,
+        weeklyViews: Math.floor(Math.random() * 10000) + 500
+      }));
+    } catch (error) {
+      console.error("Error getting trending gifts:", error?.response?.data?.message || error);
+      return [];
     }
-    
-    // Sort results
-    switch (sortBy) {
-      case 'trending':
-        gifts.sort((a, b) => b.trendScore - a.trendScore);
-        break;
-      case 'popular':
-        gifts.sort((a, b) => b.weeklyViews - a.weeklyViews);
-        break;
-      case 'recent':
-        gifts.sort((a, b) => b.Id - a.Id);
-        break;
-      case 'price-asc':
-        gifts.sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
-        break;
-      case 'price-desc':
-        gifts.sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
-        break;
-      default:
-        gifts.sort((a, b) => b.trendScore - a.trendScore);
-    }
-    
-    return gifts.slice(0, 20);
   }
 
-  // Get trending categories
   async getTrendingCategories() {
-    await this.delay(600);
-    
+    // Mock trending categories since no specific database table
     const categories = [
       { name: 'Tech Gadgets', itemCount: 45, growthPercentage: 35 },
       { name: 'Home & Living', itemCount: 32, growthPercentage: 22 },
@@ -330,173 +265,163 @@ this.userPreferences.lastUpdated = new Date().toISOString();
     
     return categories.sort((a, b) => b.growthPercentage - a.growthPercentage);
   }
-async generateDIYInstructions(giftId) {
-    await this.delay(500);
-    const gift = await this.getById(giftId);
-    
-    if (!gift || gift.category !== 'DIY') {
-      throw new Error('Gift not found or not a DIY project');
-    }
 
-    // Generate detailed instructions based on gift type
-    const instructionTemplates = {
-      'DIY Terrarium Kit': {
+  async generateDIYInstructions(giftId) {
+    try {
+      const gift = await this.getById(giftId);
+      
+      if (!gift || gift.Category !== 'DIY') {
+        throw new Error('Gift not found or not a DIY project');
+      }
+
+      // Generate detailed instructions based on gift type
+      const instructionTemplates = {
+        'DIY Terrarium Kit': {
+          materials: [
+            { item: 'Glass container or jar', quantity: '1', essential: true },
+            { item: 'Small rocks or pebbles', quantity: '1 cup', essential: true },
+            { item: 'Activated charcoal', quantity: '2 tbsp', essential: true },
+            { item: 'Potting soil', quantity: '2 cups', essential: true },
+            { item: 'Small plants (succulents recommended)', quantity: '2-3', essential: true },
+            { item: 'Decorative elements (stones, figures)', quantity: 'as desired', essential: false },
+            { item: 'Spray bottle', quantity: '1', essential: true },
+            { item: 'Small spoon or tweezers', quantity: '1', essential: true }
+          ],
+          tools: ['Small spoon', 'Tweezers', 'Spray bottle'],
+          difficulty: 'Beginner',
+          timeEstimate: '45 minutes',
+          steps: [
+            {
+              title: 'Prepare the Base Layer',
+              description: 'Add a layer of small rocks or pebbles to the bottom of your container for drainage.',
+              image: '/images/diy/terrarium-step1.jpg',
+              duration: '5 minutes',
+              tips: ['Use rocks about 1/4 to 1/2 inch in size', 'Layer should be about 1 inch deep']
+            },
+            {
+              title: 'Add Charcoal Layer',
+              description: 'Sprinkle activated charcoal over the rocks to prevent odors and bacterial growth.',
+              image: '/images/diy/terrarium-step2.jpg',
+              duration: '3 minutes',
+              tips: ['A thin layer is sufficient', 'Charcoal helps keep the terrarium fresh']
+            },
+            {
+              title: 'Create Soil Foundation',
+              description: 'Add a layer of potting soil, making it deeper where you plan to plant.',
+              image: '/images/diy/terrarium-step3.jpg',
+              duration: '7 minutes',
+              tips: ['Soil layer should be 2-3 inches deep', 'Create small hills for visual interest']
+            },
+            {
+              title: 'Plant Your Greenery',
+              description: 'Carefully plant your chosen plants, starting with the largest ones first.',
+              image: '/images/diy/terrarium-step4.jpg',
+              duration: '15 minutes',
+              tips: ['Use tweezers for precise placement', 'Leave space for plants to grow']
+            },
+            {
+              title: 'Add Decorative Elements',
+              description: 'Place decorative stones, moss, or small figurines to personalize your terrarium.',
+              image: '/images/diy/terrarium-step5.jpg',
+              duration: '10 minutes',
+              tips: ['Less is more with decorations', 'Consider the scale of your container']
+            },
+            {
+              title: 'Final Watering and Setup',
+              description: 'Lightly mist the terrarium and place it in a location with indirect sunlight.',
+              image: '/images/diy/terrarium-step6.jpg',
+              duration: '5 minutes',
+              tips: ['Avoid overwatering', 'Bright, indirect light is best']
+            }
+          ]
+        }
+      };
+
+      // Default template for other DIY projects
+      const defaultTemplate = {
         materials: [
-          { item: 'Glass container or jar', quantity: '1', essential: true },
-          { item: 'Small rocks or pebbles', quantity: '1 cup', essential: true },
-          { item: 'Activated charcoal', quantity: '2 tbsp', essential: true },
-          { item: 'Potting soil', quantity: '2 cups', essential: true },
-          { item: 'Small plants (succulents recommended)', quantity: '2-3', essential: true },
-          { item: 'Decorative elements (stones, figures)', quantity: 'as desired', essential: false },
-          { item: 'Spray bottle', quantity: '1', essential: true },
-          { item: 'Small spoon or tweezers', quantity: '1', essential: true }
+          { item: 'Basic craft materials', quantity: 'varies', essential: true },
+          { item: 'Decorative elements', quantity: 'as needed', essential: false }
         ],
-        tools: ['Small spoon', 'Tweezers', 'Spray bottle'],
-        difficulty: 'Beginner',
-        timeEstimate: '45 minutes',
+        tools: ['Basic crafting tools'],
+        difficulty: 'Intermediate',
+        timeEstimate: '1-2 hours',
         steps: [
           {
-            title: 'Prepare the Base Layer',
-            description: 'Add a layer of small rocks or pebbles to the bottom of your container for drainage.',
-            image: '/images/diy/terrarium-step1.jpg',
-            duration: '5 minutes',
-            tips: ['Use rocks about 1/4 to 1/2 inch in size', 'Layer should be about 1 inch deep']
-          },
-          {
-            title: 'Add Charcoal Layer',
-            description: 'Sprinkle activated charcoal over the rocks to prevent odors and bacterial growth.',
-            image: '/images/diy/terrarium-step2.jpg',
-            duration: '3 minutes',
-            tips: ['A thin layer is sufficient', 'Charcoal helps keep the terrarium fresh']
-          },
-          {
-            title: 'Create Soil Foundation',
-            description: 'Add a layer of potting soil, making it deeper where you plan to plant.',
-            image: '/images/diy/terrarium-step3.jpg',
-            duration: '7 minutes',
-            tips: ['Soil layer should be 2-3 inches deep', 'Create small hills for visual interest']
-          },
-          {
-            title: 'Plant Your Greenery',
-            description: 'Carefully plant your chosen plants, starting with the largest ones first.',
-            image: '/images/diy/terrarium-step4.jpg',
-            duration: '15 minutes',
-            tips: ['Use tweezers for precise placement', 'Leave space for plants to grow']
-          },
-          {
-            title: 'Add Decorative Elements',
-            description: 'Place decorative stones, moss, or small figurines to personalize your terrarium.',
-            image: '/images/diy/terrarium-step5.jpg',
+            title: 'Gather Materials',
+            description: 'Collect all necessary materials and prepare your workspace.',
+            image: '/images/diy/generic-step1.jpg',
             duration: '10 minutes',
-            tips: ['Less is more with decorations', 'Consider the scale of your container']
+            tips: ['Read through all instructions first', 'Organize materials within easy reach']
           },
           {
-            title: 'Final Watering and Setup',
-            description: 'Lightly mist the terrarium and place it in a location with indirect sunlight.',
-            image: '/images/diy/terrarium-step6.jpg',
-            duration: '5 minutes',
-            tips: ['Avoid overwatering', 'Bright, indirect light is best']
+            title: 'Create Your Project',
+            description: 'Follow the specific instructions for your chosen DIY project.',
+            image: '/images/diy/generic-step2.jpg',
+            duration: '60-90 minutes',
+            tips: ['Take your time', 'Don\'t be afraid to get creative']
+          },
+          {
+            title: 'Finishing Touches',
+            description: 'Add final details and let your project dry or set as needed.',
+            image: '/images/diy/generic-step3.jpg',
+            duration: '15 minutes',
+            tips: ['Allow proper drying time', 'Consider packaging for gifting']
           }
         ]
-      }
-    };
+      };
 
-    // Default template for other DIY projects
-    const defaultTemplate = {
-      materials: [
-        { item: 'Basic craft materials', quantity: 'varies', essential: true },
-        { item: 'Decorative elements', quantity: 'as needed', essential: false }
-      ],
-      tools: ['Basic crafting tools'],
-      difficulty: 'Intermediate',
-      timeEstimate: '1-2 hours',
-      steps: [
-        {
-          title: 'Gather Materials',
-          description: 'Collect all necessary materials and prepare your workspace.',
-          image: '/images/diy/generic-step1.jpg',
-          duration: '10 minutes',
-          tips: ['Read through all instructions first', 'Organize materials within easy reach']
-        },
-        {
-          title: 'Create Your Project',
-          description: 'Follow the specific instructions for your chosen DIY project.',
-          image: '/images/diy/generic-step2.jpg',
-          duration: '60-90 minutes',
-          tips: ['Take your time', 'Don\'t be afraid to get creative']
-        },
-        {
-          title: 'Finishing Touches',
-          description: 'Add final details and let your project dry or set as needed.',
-          image: '/images/diy/generic-step3.jpg',
-          duration: '15 minutes',
-          tips: ['Allow proper drying time', 'Consider packaging for gifting']
-        }
-      ]
-    };
+      const instructions = instructionTemplates[gift.Title] || defaultTemplate;
 
-    const instructions = instructionTemplates[gift.title] || defaultTemplate;
-
-    return {
-      giftId: gift.Id,
-      gift: { ...gift },
-      ...instructions,
-      createdAt: new Date().toISOString()
-    };
+      return {
+        giftId: gift.Id,
+        gift: { ...gift },
+        ...instructions,
+        createdAt: new Date().toISOString()
+      };
+    } catch (error) {
+      console.error("Error generating DIY instructions:", error?.response?.data?.message || error);
+      throw error;
+    }
   }
 
-  async getByCategory(category) {
-    await this.delay(250);
-    return this.data.filter(gift => gift.category === category);
-  }
-
-async create(giftData) {
-    await this.delay(400);
-    const newGift = {
-      Id: this.getNextId(),
-      ...giftData,
-      tags: giftData.tags || [],
-      storeInfo: giftData.storeInfo || null,
-      purchaseUrls: giftData.purchaseUrls || {}
-    };
-    this.data.push(newGift);
-    return { ...newGift };
-  }
-
-  async update(id, giftData) {
-    await this.delay(350);
-    const index = this.data.findIndex(g => g.Id === parseInt(id));
-    if (index === -1) throw new Error("Gift not found");
+  async trackUserInteraction(interactionType, giftData) {
+    // Update category preferences
+    if (giftData.Category) {
+      this.userPreferences.categories[giftData.Category] = 
+        (this.userPreferences.categories[giftData.Category] || 0) + this.getInteractionWeight(interactionType);
+    }
     
-    this.data[index] = { ...this.data[index], ...giftData, Id: parseInt(id) };
-    return { ...this.data[index] };
-  }
-
-  async delete(id) {
-    await this.delay(250);
-    const index = this.data.findIndex(g => g.Id === parseInt(id));
-    if (index === -1) throw new Error("Gift not found");
+    // Update tag preferences
+    if (giftData.Tags) {
+      const tags = giftData.Tags.split(',');
+      tags.forEach(tag => {
+        this.userPreferences.tags[tag.trim()] = 
+          (this.userPreferences.tags[tag.trim()] || 0) + this.getInteractionWeight(interactionType) * 0.5;
+      });
+    }
     
-    const deleted = this.data.splice(index, 1)[0];
-    return { ...deleted };
-  }
-
-  async getStoreAvailability(giftId) {
-    await this.delay(200);
-    const gift = this.data.find(g => g.Id === parseInt(giftId));
-    if (!gift) return [];
+    // Update price range preferences
+    if (giftData.Price) {
+      const priceRange = Math.floor(giftData.Price / 50) * 50;
+      this.userPreferences.priceRanges[priceRange] = 
+        (this.userPreferences.priceRanges[priceRange] || 0) + this.getInteractionWeight(interactionType);
+    }
     
-    // Import e-commerce service to check store availability
-    const { ecommerceService } = await import('./ecommerceService');
-    return await ecommerceService.getStoreAvailability(gift);
+    this.userPreferences.lastUpdated = new Date().toISOString();
   }
 
-  getNextId() {
-    return Math.max(...this.data.map(g => g.Id), 0) + 1;
-  }
-
-  async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+  getInteractionWeight(interactionType) {
+    const weights = {
+      'view': 1,
+      'share': 2,
+      'purchase': 5,
+      'purchase_attempt': 4,
+      'purchase_redirect': 4,
+      'store_view': 2,
+      'click': 1
+    };
+    return weights[interactionType] || 1;
   }
 }
 

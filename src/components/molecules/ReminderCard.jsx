@@ -61,10 +61,10 @@ const ReminderCard = ({ reminder, recipient, occasion, onSnooze, onFindGifts, cl
               </div>
               <div>
                 <h3 className="font-semibold text-gray-900">
-                  {recipient.name}'s {occasion.type}
+{recipient.Name || recipient.name}'s {occasion.Type || occasion.type}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {format(parseISO(occasion.date), "EEEE, MMMM d, yyyy")}
+                  {format(parseISO(occasion.Date || occasion.date), "EEEE, MMMM d, yyyy")}
                 </p>
               </div>
             </div>
@@ -86,14 +86,14 @@ const ReminderCard = ({ reminder, recipient, occasion, onSnooze, onFindGifts, cl
               </div>
             )}
             
-            {recipient.relationship && (
+{(recipient.Relationship || recipient.relationship) && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Relationship:</span>
-                <span className="text-sm font-medium text-gray-900">{recipient.relationship}</span>
+                <span className="text-sm font-medium">{recipient.Relationship || recipient.relationship}</span>
               </div>
             )}
 
-            {recipient.age && (
+            {(recipient.Age || recipient.age) && (
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Age:</span>
                 <span className="text-sm font-medium text-gray-900">{recipient.age} years old</span>
@@ -102,18 +102,18 @@ const ReminderCard = ({ reminder, recipient, occasion, onSnooze, onFindGifts, cl
           </div>
 
           {/* Interests Preview */}
-          {recipient.interests && recipient.interests.length > 0 && (
+{(recipient.interests || recipient.Interests) && (recipient.interests || recipient.Interests).length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium text-gray-700">Interests</h4>
               <div className="flex flex-wrap gap-2">
-                {recipient.interests.slice(0, 3).map((interest, index) => (
+                {(recipient.interests || recipient.Interests).slice(0, 3).map((interest, index) => (
                   <Badge key={index} variant="outline" size="sm">
                     {interest}
                   </Badge>
                 ))}
-                {recipient.interests.length > 3 && (
+                {(recipient.interests || recipient.Interests).length > 3 && (
                   <Badge variant="outline" size="sm">
-                    +{recipient.interests.length - 3} more
+                    +{(recipient.interests || recipient.Interests).length - 3} more
                   </Badge>
                 )}
               </div>

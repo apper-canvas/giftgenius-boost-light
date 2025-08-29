@@ -1,90 +1,147 @@
-import remindersData from "@/services/mockData/reminders.json";
-
 class ReminderService {
   constructor() {
-    this.data = [...remindersData];
+    this.apperClient = null;
+    this.initializeApperClient();
+  }
+
+  initializeApperClient() {
+    if (typeof window !== 'undefined' && window.ApperSDK) {
+      const { ApperClient } = window.ApperSDK;
+      this.apperClient = new ApperClient({
+        apperProjectId: import.meta.env.VITE_APPER_PROJECT_ID,
+        apperPublicKey: import.meta.env.VITE_APPER_PUBLIC_KEY
+      });
+    }
   }
 
   async getAll() {
-    await this.delay(250);
-    return [...this.data].sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
-  }
-
-  async getById(id) {
-    await this.delay(150);
-    const reminder = this.data.find(r => r.Id === parseInt(id));
-    return reminder ? { ...reminder } : null;
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "RecipientId"}},
+          {"field": {"Name": "OccasionId"}},
+          {"field": {"Name": "AlertDate"}},
+          {"field": {"Name": "Status"}},
+          {"field": {"Name": "Type"}},
+          {"field": {"Name": "Message"}},
+          {"field": {"Name": "CreatedAt"}}
+        ],
+        orderBy: [{"fieldName": "AlertDate", "sorttype": "ASC"}]
+      };
+      
+      const response = await this.apperClient.fetchRecords('reminder_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      return response.data.map(reminder => ({
+        ...reminder,
+        recipientId: reminder.RecipientId,
+        occasionId: reminder.OccasionId,
+        alertDate: reminder.AlertDate,
+        status: reminder.Status || 'active',
+        type: reminder.Type || 'general'
+      }));
+    } catch (error) {
+      console.error("Error fetching reminders:", error?.response?.data?.message || error);
+      return [];
+    }
   }
 
   async getUpcoming(days = 30) {
-    await this.delay(300);
-    const now = new Date();
-    const future = new Date();
-    future.setDate(now.getDate() + days);
-    
-    return this.data
-      .filter(reminder => {
-        const alertDate = new Date(reminder.alertDate);
-        return alertDate >= now && alertDate <= future && reminder.status === "active";
-      })
-      .sort((a, b) => new Date(a.alertDate) - new Date(b.alertDate));
-  }
-
-  async getByRecipient(recipientId) {
-    await this.delay(200);
-    return this.data.filter(reminder => reminder.recipientId === parseInt(recipientId));
-  }
-
-  async create(reminderData) {
-    await this.delay(350);
-    const newReminder = {
-      Id: this.getNextId(),
-      ...reminderData,
-      status: reminderData.status || "active"
-    };
-    this.data.push(newReminder);
-    return { ...newReminder };
+    try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const now = new Date();
+      const future = new Date();
+      future.setDate(now.getDate() + days);
+      
+      const params = {
+        fields: [
+          {"field": {"Name": "RecipientId"}},
+          {"field": {"Name": "OccasionId"}},
+          {"field": {"Name": "AlertDate"}},
+          {"field": {"Name": "Status"}},
+          {"field": {"Name": "Type"}},
+          {"field": {"Name": "Message"}},
+          {"field": {"Name": "CreatedAt"}}
+        ],
+        where: [
+          {"FieldName": "AlertDate", "Operator": "GreaterThanOrEqualTo", "Values": [now.toISOString()]},
+          {"FieldName": "AlertDate", "Operator": "LessThanOrEqualTo", "Values": [future.toISOString()]},
+          {"FieldName": "Status", "Operator": "EqualTo", "Values": ["active"]}
+        ],
+        orderBy: [{"fieldName": "AlertDate", "sorttype": "ASC"}]
+      };
+      
+      const response = await this.apperClient.fetchRecords('reminder_c', params);
+      
+      if (!response?.data?.length) {
+        return [];
+      }
+      
+      return response.data.map(reminder => ({
+        ...reminder,
+        recipientId: reminder.RecipientId,
+        occasionId: reminder.OccasionId,
+        alertDate: reminder.AlertDate,
+        status: reminder.Status || 'active',
+        type: reminder.Type || 'general'
+      }));
+    } catch (error) {
+      console.error("Error fetching upcoming reminders:", error?.response?.data?.message || error);
+      return [];
+    }
   }
 
   async update(id, reminderData) {
-    await this.delay(300);
-    const index = this.data.findIndex(r => r.Id === parseInt(id));
-    if (index === -1) throw new Error("Reminder not found");
-    
-    this.data[index] = { ...this.data[index], ...reminderData, Id: parseInt(id) };
-    return { ...this.data[index] };
-  }
-
-  async delete(id) {
-    await this.delay(250);
-    const index = this.data.findIndex(r => r.Id === parseInt(id));
-    if (index === -1) throw new Error("Reminder not found");
-    
-    const deleted = this.data.splice(index, 1)[0];
-    return { ...deleted };
-  }
-
-  async snooze(id, hours = 24) {
-    await this.delay(200);
-    const reminder = this.data.find(r => r.Id === parseInt(id));
-    if (!reminder) throw new Error("Reminder not found");
-    
-    const newAlertDate = new Date();
-    newAlertDate.setHours(newAlertDate.getHours() + hours);
-    
-    return this.update(id, {
-      alertDate: newAlertDate.toISOString(),
-      status: "snoozed"
-    });
-  }
-
-async sendBirthdayNotification(recipientId, daysAdvance = 7) {
-    await this.delay(200);
-    
-    const { alertNotificationService } = await import('@/services/api/alertNotificationService');
-    const { recipientService } = await import('@/services/api/recipientService');
-    
     try {
+      if (!this.apperClient) this.initializeApperClient();
+      
+      const params = {
+        records: [{
+          Id: parseInt(id),
+          AlertDate: reminderData.alertDate,
+          Status: reminderData.status
+        }]
+      };
+      
+      const response = await this.apperClient.updateRecord('reminder_c', params);
+      
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+      
+      if (response.results) {
+        const successful = response.results.filter(r => r.success);
+        if (successful[0]?.data) {
+          const updated = successful[0].data;
+          return {
+            ...updated,
+            recipientId: updated.RecipientId,
+            occasionId: updated.OccasionId,
+            alertDate: updated.AlertDate,
+            status: updated.Status
+          };
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error updating reminder:", error?.response?.data?.message || error);
+      throw error;
+    }
+  }
+
+  async sendBirthdayNotification(recipientId, daysAdvance = 7) {
+    try {
+      const { alertNotificationService } = await import('@/services/api/alertNotificationService');
+      const { recipientService } = await import('@/services/api/recipientService');
+      
       const recipient = await recipientService.getById(recipientId);
       if (!recipient) return;
       
@@ -102,19 +159,18 @@ async sendBirthdayNotification(recipientId, daysAdvance = 7) {
   }
 
   async getBirthdayReminders(daysAhead = 30) {
-    await this.delay(300);
-    const { recipientService } = await import('@/services/api/recipientService');
-    
     try {
+      const { recipientService } = await import('@/services/api/recipientService');
+      
       const recipients = await recipientService.getAll();
       const now = new Date();
       const future = new Date();
       future.setDate(now.getDate() + daysAhead);
       
       const upcomingBirthdays = recipients.filter(recipient => {
-        if (!recipient.birthday) return false;
+        if (!recipient.Birthday) return false;
         
-        const birthday = new Date(recipient.birthday);
+        const birthday = new Date(recipient.Birthday);
         const thisYearBirthday = new Date(now.getFullYear(), birthday.getMonth(), birthday.getDate());
         
         if (thisYearBirthday < now) {
@@ -123,10 +179,10 @@ async sendBirthdayNotification(recipientId, daysAdvance = 7) {
         
         return thisYearBirthday >= now && thisYearBirthday <= future;
       }).map(recipient => ({
-        Id: this.getNextId(),
+        Id: Date.now() + Math.random(),
         recipientId: recipient.Id,
         occasionId: null,
-        alertDate: new Date(now.getFullYear(), new Date(recipient.birthday).getMonth(), new Date(recipient.birthday).getDate() - 7).toISOString(),
+        alertDate: new Date(now.getFullYear(), new Date(recipient.Birthday).getMonth(), new Date(recipient.Birthday).getDate() - 7).toISOString(),
         status: "active",
         type: "birthday"
       }));
@@ -137,14 +193,7 @@ async sendBirthdayNotification(recipientId, daysAdvance = 7) {
       return [];
     }
   }
-
-  getNextId() {
-    return Math.max(...this.data.map(r => r.Id), 0) + 1;
-  }
-
-  async delay(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
 }
 
+export const reminderService = new ReminderService();
 export const reminderService = new ReminderService();

@@ -98,7 +98,7 @@ const GroupGiftModal = ({
     onSubmit(submitData);
   };
 
-  const selectedRecipient = recipients.find(r => r.Id === parseInt(formData.recipientId));
+const selectedRecipient = recipients.find(r => r.Id === parseInt(formData.recipientId));
   const selectedGift = gifts.find(g => g.Id === parseInt(formData.giftId));
 
   if (!isOpen) return null;
@@ -154,9 +154,9 @@ const GroupGiftModal = ({
                     onChange={(e) => handleInputChange('recipientId', e.target.value)}
                   >
                     <option value="">Select recipient...</option>
-                    {recipients.map(recipient => (
+{recipients.map(recipient => (
                       <option key={recipient.Id} value={recipient.Id}>
-                        {recipient.name} ({recipient.relationship})
+                        {recipient.Name || recipient.name} ({recipient.Relationship || recipient.relationship})
                       </option>
                     ))}
                   </select>
@@ -191,9 +191,9 @@ const GroupGiftModal = ({
                   onChange={(e) => handleInputChange('giftId', e.target.value)}
                 >
                   <option value="">No specific gift selected</option>
-                  {gifts.slice(0, 20).map(gift => (
+{gifts.slice(0, 20).map(gift => (
                     <option key={gift.Id} value={gift.Id}>
-                      {gift.name} - ${gift.price}
+                      {gift.Title || gift.name} - ${gift.Price || gift.price}
                     </option>
                   ))}
                 </select>
@@ -255,12 +255,12 @@ const GroupGiftModal = ({
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-purple-200 rounded-full flex items-center justify-center">
                     <span className="text-purple-700 font-medium">
-                      {selectedRecipient.name[0]}
+{(selectedRecipient.Name || selectedRecipient.name)[0]}
                     </span>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">{selectedRecipient.name}</p>
-                    <p className="text-sm text-gray-600">{selectedRecipient.relationship}</p>
+                    <p className="font-medium text-gray-900">{selectedRecipient.Name || selectedRecipient.name}</p>
+                    <p className="text-sm text-gray-600">{selectedRecipient.Relationship || selectedRecipient.relationship}</p>
                   </div>
                 </div>
               </div>
