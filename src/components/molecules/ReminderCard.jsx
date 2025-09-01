@@ -8,8 +8,10 @@ import { motion } from "framer-motion";
 import { format, differenceInDays, parseISO } from "date-fns";
 
 const ReminderCard = ({ reminder, recipient, occasion, onSnooze, onFindGifts, className, ...props }) => {
-  const daysUntil = differenceInDays(parseISO(occasion.date), new Date());
-  
+const daysUntil = differenceInDays(
+    occasion.date && typeof occasion.date === 'string' ? parseISO(occasion.date) : new Date(), 
+    new Date()
+  );
   const getUrgencyColor = (days) => {
     if (days <= 1) return "error";
     if (days <= 3) return "warning";
@@ -64,7 +66,12 @@ const ReminderCard = ({ reminder, recipient, occasion, onSnooze, onFindGifts, cl
 {recipient.Name || recipient.name}'s {occasion.Type || occasion.type}
                 </h3>
                 <p className="text-sm text-gray-600">
-                  {format(parseISO(occasion.Date || occasion.date), "EEEE, MMMM d, yyyy")}
+{format(
+                    (occasion.Date || occasion.date) && typeof (occasion.Date || occasion.date) === 'string' 
+                      ? parseISO(occasion.Date || occasion.date) 
+                      : new Date(), 
+                    "EEEE, MMMM d, yyyy"
+                  )}
                 </p>
               </div>
             </div>

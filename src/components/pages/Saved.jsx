@@ -160,7 +160,11 @@ const handlePriceAlertToggle = async (savedGift) => {
     // Sort
     switch (sortBy) {
       case "recent":
-        return filtered.sort((a, b) => parseISO(b.savedDate) - parseISO(a.savedDate));
+return filtered.sort((a, b) => {
+          const dateA = a.savedDate && typeof a.savedDate === 'string' ? parseISO(a.savedDate) : new Date();
+          const dateB = b.savedDate && typeof b.savedDate === 'string' ? parseISO(b.savedDate) : new Date();
+          return dateB - dateA;
+        });
       case "price-low":
         return filtered.sort((a, b) => a.gift.price - b.gift.price);
       case "price-high":
@@ -333,7 +337,14 @@ const handlePriceAlertToggle = async (savedGift) => {
                   <ApperIcon name="User" size={12} />
                   <span>For {savedItem.recipient.name}</span>
                 </span>
-                <span>{format(parseISO(savedItem.savedDate), "MMM d")}</span>
+<span>
+                  {format(
+                    savedItem.savedDate && typeof savedItem.savedDate === 'string' 
+                      ? parseISO(savedItem.savedDate) 
+                      : new Date(), 
+                    "MMM d"
+                  )}
+                </span>
               </div>
               
               <div className="pt-6">

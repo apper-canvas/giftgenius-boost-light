@@ -69,8 +69,11 @@ const handleQuickGift = () => {
   const urgentReminders = reminders.filter(reminder => {
     const recipient = recipients.find(r => r.Id === reminder.recipientId);
     const occasion = recipient?.occasions?.find(o => o.Id === reminder.occasionId);
-    if (!occasion) return false;
-    const daysUntil = differenceInDays(parseISO(occasion.date), new Date());
+if (!occasion) return false;
+    const daysUntil = differenceInDays(
+      occasion.date && typeof occasion.date === 'string' ? parseISO(occasion.date) : new Date(), 
+      new Date()
+    );
     return daysUntil <= 7;
   });
 
@@ -236,8 +239,10 @@ const handleQuickGift = () => {
                 const occasion = recipient?.occasions?.find(o => o.Id === reminder.occasionId);
                 if (!recipient || !occasion) return null;
                 
-                const daysUntil = differenceInDays(parseISO(occasion.date), new Date());
-                
+const daysUntil = differenceInDays(
+                  occasion.date && typeof occasion.date === 'string' ? parseISO(occasion.date) : new Date(), 
+                  new Date()
+                );
                 return (
 <div key={reminder.Id} className="bg-white rounded-lg p-4 shadow-sm">
                     <div className="flex items-center space-x-3">
@@ -319,7 +324,12 @@ const handleQuickGift = () => {
                             {recipient.occasions[0].type}
                           </span>
                           <span className="text-xs text-purple-700">
-                            {format(parseISO(recipient.occasions[0].date), "MMM d")}
+{format(
+                              recipient.occasions[0].date && typeof recipient.occasions[0].date === 'string' 
+                                ? parseISO(recipient.occasions[0].date) 
+                                : new Date(), 
+                              "MMM d"
+                            )}
                           </span>
                         </div>
                       </div>

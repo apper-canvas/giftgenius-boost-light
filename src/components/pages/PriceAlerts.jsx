@@ -147,13 +147,19 @@ const PriceAlerts = () => {
 
     switch (sortBy) {
       case "recent":
-        return filtered.sort((a, b) => parseISO(b.createdAt) - parseISO(a.createdAt));
+return filtered.sort((a, b) => {
+          const dateA = a.createdAt && typeof a.createdAt === 'string' ? parseISO(a.createdAt) : new Date();
+          const dateB = b.createdAt && typeof b.createdAt === 'string' ? parseISO(b.createdAt) : new Date();
+          return dateB - dateA;
+        });
       case "triggered":
-        return filtered.sort((a, b) => {
+return filtered.sort((a, b) => {
           if (!a.lastTriggered && !b.lastTriggered) return 0;
           if (!a.lastTriggered) return 1;
           if (!b.lastTriggered) return -1;
-          return parseISO(b.lastTriggered) - parseISO(a.lastTriggered);
+          const dateA = a.lastTriggered && typeof a.lastTriggered === 'string' ? parseISO(a.lastTriggered) : new Date();
+          const dateB = b.lastTriggered && typeof b.lastTriggered === 'string' ? parseISO(b.lastTriggered) : new Date();
+          return dateB - dateA;
         });
       case "price":
         return filtered.sort((a, b) => a.gift.price - b.gift.price);
@@ -355,10 +361,15 @@ const PriceAlerts = () => {
                       </span>
                     </div>
                     {alert.lastTriggered && (
-                      <div className="flex items-center justify-between text-sm">
+<div className="flex items-center justify-between text-sm">
                         <span className="text-gray-600">Last Triggered:</span>
                         <span className="font-medium text-green-600">
-                          {format(parseISO(alert.lastTriggered), "MMM d, yyyy")}
+                          {format(
+                            alert.lastTriggered && typeof alert.lastTriggered === 'string' 
+                              ? parseISO(alert.lastTriggered) 
+                              : new Date(), 
+                            "MMM d, yyyy"
+                          )}
                         </span>
                       </div>
                     )}

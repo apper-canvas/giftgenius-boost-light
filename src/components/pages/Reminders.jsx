@@ -113,8 +113,10 @@ const [error, setError] = React.useState("");
       const occasion = recipient.occasions?.find(o => o.Id === reminder.occasionId);
       if (!occasion) return false;
       
-      const daysUntil = differenceInDays(parseISO(occasion.date), now);
-      
+const daysUntil = differenceInDays(
+        occasion.date && typeof occasion.date === 'string' ? parseISO(occasion.date) : new Date(), 
+        now
+      );
       switch (filter) {
         case "urgent":
           return daysUntil <= 3 && daysUntil >= 0;
@@ -135,7 +137,9 @@ const [error, setError] = React.useState("");
       
       if (!occasionA || !occasionB) return 0;
       
-      return parseISO(occasionA.date) - parseISO(occasionB.date);
+const dateA = occasionA.date && typeof occasionA.date === 'string' ? parseISO(occasionA.date) : new Date();
+      const dateB = occasionB.date && typeof occasionB.date === 'string' ? parseISO(occasionB.date) : new Date();
+      return dateA - dateB;
     });
   };
 
@@ -158,8 +162,10 @@ const [error, setError] = React.useState("");
       const occasion = recipient.occasions?.find(o => o.Id === reminder.occasionId);
       if (!occasion) return;
       
-      const daysUntil = differenceInDays(parseISO(occasion.date), now);
-      
+const daysUntil = differenceInDays(
+        occasion.date && typeof occasion.date === 'string' ? parseISO(occasion.date) : new Date(), 
+        now
+      );
       if (daysUntil < 0) counts.overdue++;
       else if (daysUntil <= 3) counts.urgent++;
       else if (daysUntil <= 14) counts.upcoming++;
