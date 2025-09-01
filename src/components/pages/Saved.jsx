@@ -235,7 +235,7 @@ const handlePriceAlertToggle = async (savedGift) => {
                   onChange={(e) => setFilterBy(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-secondary-400 focus:ring-1 focus:ring-secondary-400 focus:outline-none"
                 >
-                  <option value="all">All Categories</option>
+<option value="all">All Categories</option>
                   {getUniqueCategories().map(category => (
                     <option key={category} value={category}>{category}</option>
                   ))}
@@ -250,7 +250,7 @@ const handlePriceAlertToggle = async (savedGift) => {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-secondary-400 focus:ring-1 focus:ring-secondary-400 focus:outline-none"
                 >
-                  {sortOptions.map(option => (
+{sortOptions.map(option => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
