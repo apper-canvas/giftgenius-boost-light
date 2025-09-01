@@ -139,10 +139,10 @@ const handleFindGifts = async (recipient) => {
   };
 
 const filteredRecipients = recipients.filter(recipient =>
-    recipient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipient.relationship.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (recipient.interests && recipient.interests.some(interest => 
-      interest.toLowerCase().includes(searchTerm.toLowerCase())
+    (recipient.name || recipient.Name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (recipient.relationship || recipient.Relationship || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ((recipient.interests || recipient.Interests || []).some(interest => 
+      (interest || '').toLowerCase().includes(searchTerm.toLowerCase())
     ))
   );
 
