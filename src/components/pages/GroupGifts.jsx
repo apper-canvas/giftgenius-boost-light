@@ -127,9 +127,9 @@ const GroupGifts = () => {
 
   const filteredGroupGifts = groupGifts.filter(groupGift => {
     const matchesSearch = 
-      groupGift.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+(groupGift.title ?? '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       getRecipientName(groupGift.recipientId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      groupGift.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (groupGift.description ?? '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === 'all' || groupGift.status === statusFilter;
     
