@@ -250,8 +250,8 @@ const handlePriceAlertToggle = async (savedGift) => {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:border-secondary-400 focus:ring-1 focus:ring-secondary-400 focus:outline-none"
                 >
-{sortOptions.map(option => (
-                    <option key={option.value} value={option.value}>
+{sortOptions.map((option, index) => (
+                    <option key={`${index}-${option.value}`} value={option.value}>
                       {option.label}
                     </option>
                   ))}
