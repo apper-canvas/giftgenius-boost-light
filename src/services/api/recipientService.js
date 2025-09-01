@@ -1,5 +1,3 @@
-import React from "react";
-import Error from "@/components/ui/Error";
 class RecipientService {
   constructor() {
     this.apperClient = null;
